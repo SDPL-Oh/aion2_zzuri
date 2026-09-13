@@ -416,8 +416,10 @@ html:lang(zh-Hant), html:lang(zh-Hant) body {
     "Segoe UI", sans-serif;
   --hud-ident: "Pretendard", "Spoqa Han Sans Neo", "Segoe UI", sans-serif;
 
-  --hud-row-h: 30px;
-  --hud-gap: 3px;
+  /* 개인용 심플 모드: 랭크/직업 아이콘을 없애면서 생긴 여유로 행 높이·간격을
+     살짝 키워 숨쉴 틈을 줬다 (가독성 개선). */
+  --hud-row-h: 33px;
+  --hud-gap: 5px;
   /* User-adjustable in Settings; the value here is the design default. */
   --boss-name-size: 15px;
 }
@@ -748,8 +750,8 @@ html:lang(zh-Hant), html:lang(zh-Hant) body {
   flex: 0 1 auto;
   min-width: 0;
   font-family: var(--hud-ident);
-  font-size: 14.5px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   line-height: 1;
   color: var(--hud-name);
   text-shadow: var(--player-name-shadow, var(--text-shadow));
@@ -835,13 +837,64 @@ html:lang(zh-Hant), html:lang(zh-Hant) body {
   display: none !important;
 }
 
-/* 총딜량: DPS 숫자 왼쪽에 옅은 톤으로 붙여서 "총딜 / DPS" 두 수치가 함께 보이게 함. */
+/* 5개 항목 컬럼 폭 — 헤더와 각 행이 같은 값을 참조해서 세로로 숫자가
+   딱 맞게 정렬되도록 한다 (가독성 개선의 핵심). */
+:root {
+  --col-cp: 46px;
+  --col-total: 58px;
+  --col-dps: 78px;
+  --col-contrib: 40px;
+}
+.meter.slim {
+  --col-cp: 40px;
+  --col-total: 50px;
+  --col-dps: 68px;
+  --col-contrib: 34px;
+}
+
+/* 컬럼 헤더: 처음 보는 사람도 각 숫자가 무엇인지 바로 알 수 있게,
+   그리고 행 안의 숫자 컬럼과 폭을 맞춰 세로 정렬 기준을 준다. */
+.meterColumnHeader {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 16px 4px 14px;
+  font-family: var(--hud-tech);
+  font-size: 9.5px;
+  font-variation-settings: "wght" 600, "wdth" 75;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--hud-faint);
+  border-bottom: 1px solid var(--hud-hairline);
+  user-select: none;
+}
+.meterColumnHeader .colName { flex: 1 1 auto; text-align: left; }
+.meterColumnHeader .colCP { flex: 0 0 var(--col-cp); width: var(--col-cp); text-align: right; }
+.meterColumnHeader .dps.colDpsGroup {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-left: 18px;
+  flex: 0 0 auto;
+  background: none;
+  margin: 0;
+}
+.meterColumnHeader .colTotal { flex: 0 0 var(--col-total); width: var(--col-total); text-align: right; }
+.meterColumnHeader .colDpsLabel { flex: 0 0 var(--col-dps); width: var(--col-dps); text-align: right; }
+.meterColumnHeader .colContrib { flex: 0 0 var(--col-contrib); width: var(--col-contrib); text-align: right; }
+.meter.slim .meterColumnHeader { font-size: 8.5px; padding-top: 2px; padding-bottom: 3px; }
+
+/* 총딜량: DPS 숫자 왼쪽에 붙여서 "총딜 / DPS" 두 수치가 함께 보이게 함.
+   헤더 컬럼과 폭을 맞춰 세로로 정렬. */
 .list .item .dps .totalDmg {
   font-variation-settings: "wght" 600, "wdth" 80;
   font-size: 13px;
   line-height: 1;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.7);
   order: -1;
+  flex: 0 0 var(--col-total);
+  width: var(--col-total);
+  text-align: right;
 }
 .list .item .dps .totalDmg::after {
   content: "";
@@ -850,6 +903,27 @@ html:lang(zh-Hant), html:lang(zh-Hant) body {
   font-size: 11px;
 }
 
+/* 전투력 · DPS · 기여도도 헤더와 같은 고정폭으로 맞춰 세로 정렬 */
+.list .item .combatPower {
+  flex: 0 0 var(--col-cp) !important;
+  width: var(--col-cp);
+  text-align: right;
+}
+.list .item .dps > p:not(.totalDmg):not(.dpsContribution) {
+  flex: 0 0 var(--col-dps);
+  width: var(--col-dps);
+  text-align: right;
+}
+.list .item .dps .dpsContribution {
+  flex: 0 0 var(--col-contrib) !important;
+  width: var(--col-contrib) !important;
+  min-width: 0 !important;
+}
+/* 기여도가 낮은 행은 숫자 자체도 경고색으로 — 막대 색만으로는 한눈에
+   안 들어와서 가독성 차원에서 추가. */
+.list .item.warning .dps .dpsContribution { color: var(--warning-fill); }
+.list .item.error .dps .dpsContribution { color: var(--error-fill); }
+
 /* Party combat power in thousands ("864k"), sat between the name and the
    readout. Cyan sets it apart
    as a different kind of number from the white DPS figure — it is reference
@@ -857,14 +931,12 @@ html:lang(zh-Hant), html:lang(zh-Hant) body {
    it holds its own width so the name ellipsis never fights it for space. Only
    rendered for players the party roster packet covers. */
 .list .item .combatPower {
-  flex: 0 0 auto;
-  /* Pulls back against the row's 7px flex gap so the figure reads as part of
-     the name rather than as the leading edge of the DPS readout. */
-  margin-left: -3px;
+  /* 개인용 심플 모드: 헤더와 세로 정렬을 맞추기 위해 고정폭 + 우측 정렬로 변경
+     (고정폭 규칙은 아래 커스터마이징 블록에 있음). */
   font-family: var(--hud-tech);
   font-variant-numeric: tabular-nums;
   font-variation-settings: "wght" 600, "wdth" 75;
-  font-size: 10px;
+  font-size: 10.5px;
   line-height: 1;
   letter-spacing: 0.02em;
   /* The cyan the game itself uses for combat power, so the number reads as the
