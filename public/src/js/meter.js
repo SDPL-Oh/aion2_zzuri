@@ -64,17 +64,21 @@ const createMeterUI = ({
     combatPowerEl.className = "combatPower";
     combatPowerEl.style.display = "none";
 
+    // 개인 사용 심플 모드: 팀원명 / 전투력 / 총딜량 / DPS / 기여도 만 표시.
+    // 랭크 번호와 직업 아이콘은 요청한 5개 항목에 없어 렌더링에서 뺀다.
+    const totalDmgEl = document.createElement("p");
+    totalDmgEl.className = "totalDmg";
+
     const dpsContainer = document.createElement("div");
     const dpsNumber = document.createElement("p");
     dpsContainer.className = "dps";
     const dpsContribution = document.createElement("p");
     dpsContribution.className = "dpsContribution";
 
+    dpsContainer.appendChild(totalDmgEl);
     dpsContainer.appendChild(dpsNumber);
     dpsContainer.appendChild(dpsContribution);
 
-    contentEl.appendChild(rankEl);
-    contentEl.appendChild(classIconEl);
     contentEl.appendChild(nameEl);
     contentEl.appendChild(combatPowerEl);
     contentEl.appendChild(dpsContainer);
@@ -91,6 +95,7 @@ const createMeterUI = ({
       dpsContainer,
       classIconEl,
       classIconImg,
+      totalDmgEl,
       dpsNumber,
       dpsContribution,
       fillEl,
@@ -99,6 +104,7 @@ const createMeterUI = ({
       isVisible: false,
       lastNameText: "",
       lastCombatPowerText: "",
+      lastTotalDmgText: "",
       lastIsCjk: false,
       lastMetricText: "",
       lastContributionText: "",
@@ -203,6 +209,26 @@ const createMeterUI = ({
     const dps = Number(row?.dps) || 0;
     const suffix = window.i18n?.t?.("meter.dpsSuffix", "/s") ?? "/s";
     return { value: dps, text: `${dpsFormatter.format(dps)}${suffix}` };
+  };
+
+  // 총딜량은 항상 축약 표기(k/m/b)로 보여준다. DPS/전투력과 동일한 표기 방식.
+  const abbreviateNumber = (value) => {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return "-";
+    const abs = Math.abs(n);
+    const units = [
+      { value: 1e12, suffix: "t" },
+      { value: 1e9, suffix: "b" },
+      { value: 1e6, suffix: "m" },
+      { value: 1e3, suffix: "k" },
+    ];
+    for (const unit of units) {
+      if (abs >= unit.value) {
+        const scaled = (n / unit.value).toFixed(2);
+        return `${scaled.replace(/\.?0+$/, "")}${unit.suffix}`;
+      }
+    }
+    return dpsFormatter.format(n);
   };
 
   let lastOrderKey = "";
@@ -343,6 +369,13 @@ const createMeterUI = ({
       if (view.lastMetricText !== metricText) {
         view.dpsNumber.textContent = metricText;
         view.lastMetricText = metricText;
+      }
+
+      // 총딜량: 토글과 무관하게 항상 표시 (요청한 5개 항목 중 하나).
+      const totalDmgText = abbreviateNumber(row.totalDamage);
+      if (view.lastTotalDmgText !== totalDmgText) {
+        view.totalDmgEl.textContent = totalDmgText;
+        view.lastTotalDmgText = totalDmgText;
       }
 
       const contributionText = `${damageContribution.toFixed(1)}%`;

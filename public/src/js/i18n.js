@@ -1,7 +1,8 @@
+// 개인용 심플 버전: 다국어 지원을 없애고 한국어만 사용한다.
 const createI18n = ({
-  defaultLanguage = "en",
+  defaultLanguage = "ko",
   storageKey = "dpsMeter.language",
-  supportedLanguages = ["en", "ko", "zh-Hant", "zh-Hans"],
+  supportedLanguages = ["ko"],
 } = {}) => {
   let currentLanguage = defaultLanguage;
   let uiStrings = {};

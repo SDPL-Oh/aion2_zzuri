@@ -461,7 +461,8 @@
               <section class="settingsGroup settingsColumn">
                 <div class="settingsMiniTitle" data-i18n="settings.appearance">Appearance</div>
                 <div class="settingsGroupBody">
-                  <div class="settingsRow settingsRowSelect">
+                  <!-- 개인용 심플 버전: 다국어 지원 제거, 한국어 고정. 언어 선택 UI 숨김. -->
+                  <div class="settingsRow settingsRowSelect" style="display:none">
                     <div class="settingsInfo">
                       <div class="settingsLabel" data-i18n="settings.language.label">Language</div>
                     </div>
@@ -1009,8 +1010,8 @@
     <script src="/src/js/details.js?v=2021a"></script>
     <script src="/src/js/history.js?v=2018a"></script>
 
-    <!-- 추가 -->
-    <script src="/src/js/checkRelease.js?v=202b6"></script>
+    <!-- 개인용 심플 버전: 자동 업데이트 확인 기능(checkRelease.js) 제거.
+         버전은 본인이 직접 관리한다. -->
 
     <script src="/src/js/i18n.js"></script>
     <script src="/src/js/core.js?v=2018a"></script>

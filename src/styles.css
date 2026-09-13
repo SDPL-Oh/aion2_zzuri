@@ -807,6 +807,49 @@ html:lang(zh-Hant), html:lang(zh-Hant) body {
   text-align: right;
 }
 
+/* --- 개인용 심플 모드: 불필요한 UI 진입점 제거 ---
+   전투 기록(History) 창, 후원(Support) 버튼/모달은 개인 사용에 필요 없어 숨김.
+   내부 코드는 그대로 두되(빌드 안정성을 위해), 화면에서 접근 경로만 없앤다. */
+.headerBtns .historyBtn,
+.supportButton,
+.discordButton,
+.a2toolsButton,
+#supportModal,
+.detailsPanel,
+.hoverDetailsTooltip,
+.detailsMonitorDropdownWrapper,
+.detailsMonitorBadge {
+  display: none !important;
+}
+/* "Show Details on monitor" 설정 행 전체 숨김 (기능 자체가 비활성화됨) */
+.settingsRowSelect:has(.detailsMonitorDropdownWrapper) {
+  display: none !important;
+}
+
+/* --- 개인용 심플 모드 커스터마이징 ---
+   요청한 5개 항목(팀원명 / 전투력 / 총딜량 / DPS / 기여도)만 남기고,
+   랭크 번호 · 직업 아이콘 · DPS/총딜량 토글 버튼은 숨긴다. */
+.list .item .rank,
+.list .item .classIcon,
+.footerBtns .metricToggleBtn {
+  display: none !important;
+}
+
+/* 총딜량: DPS 숫자 왼쪽에 옅은 톤으로 붙여서 "총딜 / DPS" 두 수치가 함께 보이게 함. */
+.list .item .dps .totalDmg {
+  font-variation-settings: "wght" 600, "wdth" 80;
+  font-size: 13px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.72);
+  order: -1;
+}
+.list .item .dps .totalDmg::after {
+  content: "";
+}
+.meter.slim .list .item .dps .totalDmg {
+  font-size: 11px;
+}
+
 /* Party combat power in thousands ("864k"), sat between the name and the
    readout. Cyan sets it apart
    as a different kind of number from the white DPS figure — it is reference

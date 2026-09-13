@@ -483,12 +483,13 @@ class DpsApp {
       this.updateSupportPrimaryAction(lang);
       this.updateSupportQrImage(this.supportPrimaryButton?.dataset.support || "afdian");
     });
-    window.ReleaseChecker?.start?.();
+    // 개인용 심플 버전: 자동 업데이트 확인 비활성화 (checkRelease.js 삭제됨).
     this.setupConsoleDebugging();
     this.bindNativeHotkeyBridge();
 
-    const storedDisplayMode = this.safeGetStorage(this.storageKeys.displayMode);
-    this.setDisplayMode(storedDisplayMode || this.displayMode, { persist: false });
+    // 심플 모드: 총딜량은 meter.js가 항상 별도로 표시하므로, DPS/총딜량 토글
+    // 자체는 항상 "dps" 고정 (이전에 저장된 값은 무시).
+    this.setDisplayMode("dps", { persist: false });
 
     // History is a browser you leave open: picking a fight launches it into a
     // window of its own so several can be compared, and the list stays put.
@@ -709,7 +710,13 @@ class DpsApp {
     this.hoverTooltipEl.innerHTML = "";
   }
 
-  openHoverDetailsRow(row, event = null) {
+  openHoverDetailsRow(_row, _event = null) {
+    // 개인용 심플 버전: 마우스오버 스킬 상세 미리보기 비활성화.
+    return;
+  }
+
+  // eslint-disable-next-line no-unreachable
+  _openHoverDetailsRowOriginal(row, event = null) {
     if (!row || this.pinnedDetailsRowId !== null || this.shouldSuppressRowInteractions()) return;
     const rowId = Number(row?.id);
     if (!Number.isFinite(rowId) || rowId <= 0) return;
@@ -1833,11 +1840,8 @@ class DpsApp {
         this.fetchDps();
       }
     });
-    this.metricToggleBtn?.addEventListener("click", () => {
-      const nextMode = this.displayMode === "totalDamage" ? "dps" : "totalDamage";
-      this.setDisplayMode(nextMode, { persist: true });
-      this.renderCurrentRows();
-    });
+    // 심플 모드에서는 총딜량/DPS를 항상 같이 보여주므로 토글 버튼은 비활성화.
+    // (버튼 자체는 CSS로 숨김 처리됨 — styles.css .metricToggleBtn { display: none })
     this.logoBtn?.addEventListener("click", () => {
       this.captureMainMeterScreenshot();
     });
@@ -2239,7 +2243,7 @@ class DpsApp {
 
     this.setupKeybindButtons();
 
-    const currentLanguage = this.i18n?.getLanguage?.() || storedLanguage || "en";
+    const currentLanguage = this.i18n?.getLanguage?.() || storedLanguage || "ko";
     this.settingsSelections.language = currentLanguage;
     this.settingsSelections.theme = this.theme;
 
@@ -3474,7 +3478,13 @@ class DpsApp {
    * reached at all (bridge without the command, window build failed). Showing
    * the panel in the overlay beats showing nothing.
    */
-  openDetailsSurface(request, fallback) {
+  openDetailsSurface(_request, _fallback) {
+    // 개인용 심플 버전: 상세 스킬 분석 패널(Details) 비활성화.
+    return;
+  }
+
+  // eslint-disable-next-line no-unreachable
+  _openDetailsSurfaceOriginal(request, fallback) {
     const runFallback = () => {
       try { fallback?.(); } catch (err) { console.error("[A2Tools] details fallback failed", err); }
     };

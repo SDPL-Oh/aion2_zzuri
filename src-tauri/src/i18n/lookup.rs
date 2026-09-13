@@ -102,31 +102,19 @@ pub fn load_language(
     data_dir: &std::path::Path,
     language: &str,
 ) {
-    let lang = match language {
-        "ko" | "zh-Hans" | "zh-Hant" | "en" => language,
-        _ => "en",
-    };
+    // 개인용 심플 버전: 다국어 지원 제거, 한국어(ko) 고정.
+    let _ = language;
+    let lang = "ko";
 
     let skills_path = data_dir.join("i18n").join("skills").join(format!("{}.json", lang));
     if let Ok(text) = std::fs::read_to_string(&skills_path) {
         skill_lookup.load_from_json(&text);
         tracing::info!("Loaded skills ({}) from {}", lang, skills_path.display());
-    } else {
-        // Fallback to English
-        let en_path = data_dir.join("i18n").join("skills").join("en.json");
-        if let Ok(text) = std::fs::read_to_string(&en_path) {
-            skill_lookup.load_from_json(&text);
-        }
     }
 
     let npcs_path = data_dir.join("i18n").join("npcs").join(format!("{}.json", lang));
     if let Ok(text) = std::fs::read_to_string(&npcs_path) {
         npc_lookup.load_from_json(&text);
         tracing::info!("Loaded NPCs ({}) from {}", lang, npcs_path.display());
-    } else {
-        let en_path = data_dir.join("i18n").join("npcs").join("en.json");
-        if let Ok(text) = std::fs::read_to_string(&en_path) {
-            npc_lookup.load_from_json(&text);
-        }
     }
 }
