@@ -30,8 +30,8 @@ const sides = [
 ];
 const displaySides = () => [sides[1], sides[0]];
 let servers = [];
-let onlyDifferences = false;
-let equipmentView = 'all';
+let onlyDifferences = true;
+let equipmentView = 'gear';
 const optionCache = new Map();
 const optionErrors = new Map();
 const slotNames = { MainHand: '주무기', SubHand: '보조무기', Helmet: '머리', Shoulder: '어깨', Torso: '상의', Pants: '하의', Gloves: '장갑', Boots: '신발', Cape: '망토', Belt: '허리띠', Necklace: '목걸이', Earring1: '귀걸이 1', Earring2: '귀걸이 2', Ring1: '반지 1', Ring2: '반지 2', Bracelet1: '팔찌 1', Bracelet2: '팔찌 2', Wing: '날개', Pendant: '펜던트', Brooch1: '브로치 1', Brooch2: '브로치 2', Amulet: '아뮬렛', Rune1: '룬 1', Rune2: '룬 2', Seal1: '인장 1', Seal2: '인장 2', Arcana1: '아르카나 1', Arcana2: '아르카나 2', Arcana3: '아르카나 3', Arcana4: '아르카나 4', Arcana5: '아르카나 5', Arcana6: '아르카나 6', Arcana7: '아르카나 7', Arcana8: '아르카나 8', Arcana9: '아르카나 9', Arcana10: '아르카나 10' };
@@ -40,7 +40,7 @@ function renderCombat() {
   $('fightContext').textContent = snapshot ? `${snapshot.targetName || '선택한 전투'} · ${fmt((snapshot.details?.battleTime || snapshot.battleTime || 0) / 1000, 1)}초 · ${clock(snapshot.capturedAt)} 기록` : '미터기의 캐릭터 옆 ‘비교’ 링크에서 열면 해당 전투 기록이 표시됩니다.';
   const actors = $('combatActors'); actors.replaceChildren();
   [sides[1], sides[0]].forEach((side, i) => {
-    if (i) actors.append(el('div', 'comparisonHeading', '차이 · 상대 − 나'));
+    if (i) actors.append(el('div', 'comparisonHeading', '차이 · 나 − 상대'));
     const label = el('label', side.key, side.title);
     const select = el('select'); select.setAttribute('aria-label', `${side.title} 전투 기록 선택`);
     const empty = el('option', '', rows.length ? '캐릭터 선택' : '전투 기록 없음'); empty.value = ''; select.append(empty);
@@ -59,16 +59,16 @@ function renderCombat() {
   });
   const values = sides.map(s => combatMetrics(s.row, snapshot?.details));
   $('combatMetrics').replaceChildren();
-  for (const [key, title, unit] of [['dps', 'DPS', ''], ['damage', '총 피해량', ''], ['smite', '강타율', '%'], ['crit', '치명타율', '%']]) {
+  for (const [key, title, unit] of [['dps', 'DPS', ''], ['damage', '총 피해량', ''], ['crit', '치명타율', '%']]) {
     const row = el('div', 'comparisonRow');
     const scale = unit ? 100 : Math.max(values[0][key] || 0, values[1][key] || 0);
     const difference = delta(values[0][key], values[1][key]);
     for (const i of [1, 0]) {
       if (i === 0) {
         const center = el('div', 'comparisonDifference');
-        center.append(el('div', 'metricTitle', title), el('strong', difference === null || difference === 0 ? 'neutral' : difference > 0 ? 'other' : 'mine', signed(difference, unit ? '%p' : '')));
+        center.append(el('div', 'metricTitle', title), el('strong', difference === null || difference === 0 ? 'neutral' : difference > 0 ? 'mine' : 'other', signed(difference, unit ? '%p' : '')));
         const percent = percentDelta(values[0][key], values[1][key]);
-        center.append(el('span', 'differenceContext', difference === null ? '기록 부족' : difference === 0 ? '동일' : unit ? (difference > 0 ? '상대가 높음' : '내가 높음') : percent === null ? '내 수치가 0 · 증감률 없음' : `내 수치 대비 ${signed(percent, '%')}`));
+        center.append(el('span', 'differenceContext', difference === null ? '기록 부족' : difference === 0 ? '동일' : unit ? (difference > 0 ? '내가 높음' : '상대가 높음') : percent === null ? '상대 수치가 0 · 증감률 없음' : `상대 수치 대비 ${signed(percent, '%')}`));
         row.append(center);
       }
       const value = values[i][key];
@@ -169,7 +169,7 @@ function renderSetup() {
   $('statsTable').replaceChildren();
   if (!stats.length) $('statsTable').append(el('div', 'empty', '캐릭터를 조회하면 스탯 수치와 적용 효과가 표시됩니다.'));
   else {
-    const { wrap, body } = table(['스탯', '비교 캐릭터', '내 캐릭터', '상대 − 나']);
+    const { wrap, body } = table(['스탯', '비교 캐릭터', '내 캐릭터', '나 − 상대']);
     for (const s of stats.filter(s => !onlyDifferences || s.difference !== 0 || JSON.stringify(s.mine?.effects) !== JSON.stringify(s.other?.effects))) {
       const tr = el('tr', s.difference ? 'statChanged' : ''); tr.append(el('td', '', s.name));
       for (const [side, value] of [[sides[1], s.other], [sides[0], s.mine]]) { const td = el('td'); td.append(el('div', `value ${side.key}`, fmt(value?.value))); for (const effect of value?.effects || []) td.append(el('div', 'effect', effect)); tr.append(td); }
@@ -203,12 +203,21 @@ function renderEquipment(equipment) {
     [[sides[1], row.other], [sides[0], row.mine]].forEach(([side, item]) => {
       const cell = el('div', 'equipmentCell');
       const title = el('div', 'itemTitle');
+      if (item) {
+        const icon = el('img', 'equipmentIcon'); icon.alt = ''; icon.loading = 'lazy';
+        if (String(item.icon || '').startsWith('https://assets.playnccdn.com/')) icon.src = item.icon;
+        else icon.classList.add('unavailable');
+        icon.addEventListener('error', () => icon.classList.add('unavailable'));
+        title.append(icon);
+      }
       title.append(el('span', `itemName ${side.key}`, item?.name || (Array.isArray(side.data?.items) ? '장착 정보 없음' : '미조회')));
       if (item) {
         title.append(el('span', 'enchantBadge', item.enchantLevel == null ? '+?' : `+${item.enchantLevel}`));
         const breakthrough = el('span', 'breakthroughBadge', item.exceedLevel == null ? '?' : String(item.exceedLevel));
         breakthrough.title = `돌파 ${item.exceedLevel == null ? '미제공' : item.exceedLevel}`;
         breakthrough.setAttribute('aria-label', breakthrough.title);
+        const breakthroughLevel = number(item.exceedLevel);
+        if (breakthroughLevel !== null) breakthrough.style.setProperty('--breakthrough-hue', String(Math.max(0, 52 - Math.max(0, breakthroughLevel) * 8)));
         title.append(breakthrough);
       }
       cell.append(title);
@@ -270,7 +279,7 @@ function renderSkills(a, b) {
     return { key, mine: x, other: y, skill: x || y, difference: delta(x?.skillLevel, y?.skillLevel), changed: !x || !y || number(x.skillLevel) !== number(y.skillLevel) };
   }).sort((x, y) => String(x.skill.category).localeCompare(String(y.skill.category), 'ko') || String(x.skill.name).localeCompare(String(y.skill.name), 'ko'));
   if (!rows.length) { root.append(el('div', 'empty', a || b ? '표시할 습득 스킬이 없습니다.' : '캐릭터를 조회하면 스킬 이미지와 레벨이 표시됩니다.')); return; }
-  const { wrap, body } = table(['스킬', '비교 캐릭터', '내 캐릭터', '상대 − 나']);
+  const { wrap, body } = table(['스킬', '비교 캐릭터', '내 캐릭터', '나 − 상대']);
   for (const row of rows.filter(row => !onlyDifferences || row.changed)) {
     const tr = el('tr', row.changed ? 'statChanged' : '');
     const identity = el('td'); const skill = el('div', 'skillIdentity');

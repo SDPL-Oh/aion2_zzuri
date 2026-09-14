@@ -2,11 +2,11 @@
 export const number = value => value == null || value === '' || !Number.isFinite(Number(value)) ? null : Number(value);
 export function delta(mine, other) {
   const a = number(mine), b = number(other);
-  return a === null || b === null ? null : b - a;
+  return a === null || b === null ? null : a - b;
 }
 export function percentDelta(mine, other) {
   const a = number(mine), b = number(other);
-  return a === null || b === null || a === 0 ? null : (b - a) / Math.abs(a) * 100;
+  return a === null || b === null || b === 0 ? null : (a - b) / Math.abs(b) * 100;
 }
 export function combatMetrics(row, details) {
   if (!row) return { dps: null, damage: null, crit: null, smite: null };

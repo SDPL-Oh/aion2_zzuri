@@ -4,9 +4,9 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import { delta, percentDelta, combatMetrics, normalizeCharacter, statRows, equipmentRows, equipmentCategory, itemOptions, additionalOptions, decodeCharacterId, plainName } from '../public/src/js/comparisonModel.js';
 
-test('missing values are not zero and zero baselines have no percentage', () => {
-  assert.equal(delta(null, 100), null); assert.equal(delta('', 100), null); assert.equal(delta(0, 100), 100);
-  assert.equal(percentDelta(0, 100), null); assert.equal(percentDelta(100, 125), 25); assert.equal(percentDelta(100, 75), -25);
+test('differences use mine minus other and missing values are not zero', () => {
+  assert.equal(delta(null, 100), null); assert.equal(delta('', 100), null); assert.equal(delta(100, 0), 100);
+  assert.equal(percentDelta(100, 0), null); assert.equal(percentDelta(100, 125), -20); assert.equal(percentDelta(100, 80), 25);
 });
 test('damage includes DOT, rate denominators exclude DOT and other actors', () => {
   const result = combatMetrics({ id: '1' }, { battleTime: 10000, skills: [
@@ -32,9 +32,11 @@ test('partial profile keeps stats but equipment unknown', () => {
   assert.equal(statRows(a, null)[0].difference, null);
 });
 test('equipment matches slot, preserving separate rings and missing sides', () => {
-  const a = normalizeCharacter(info, gear([{ slotPos: 13, id: 9, name: '반지', enchantLevel: 10 }, { slotPos: 14, id: 9, name: '반지', enchantLevel: 8 }]));
+  const a = normalizeCharacter(info, gear([{ slotPos: 13, id: 9, name: '반지', icon: 'https://assets.playnccdn.com/ring.png', enchantLevel: 10 }, { slotPos: 14, id: 9, name: '반지', enchantLevel: 8 }]));
   const b = normalizeCharacter(info, gear([{ slotPos: 14, id: 9, name: '반지', enchantLevel: 8 }, { slotPos: 13, id: 9, name: '반지', enchantLevel: 12 }]));
   assert.deepEqual(equipmentRows(a, b).map(r => r.changed), [true, false]);
+  assert.equal(equipmentRows(a, b)[0].mine.icon, 'https://assets.playnccdn.com/ring.png');
+  assert.equal(equipmentRows(a, b)[0].mine.enchantLevel - equipmentRows(a, b)[0].other.enchantLevel, -2);
   assert.equal(equipmentRows(a, null)[0].known, false);
   assert.equal(equipmentRows(a, normalizeCharacter(info, gear([])))[0].changed, true);
 });

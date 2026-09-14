@@ -21,14 +21,14 @@
         <div id="combatActors" class="combatActors"></div>
         <div id="combatMetrics" class="metrics" aria-label="상대와 내 캐릭터의 전투 성과 막대그래프"></div>
       </div>
-      <p class="footnote">강타율·치명타율은 지속 피해(DOT)를 제외한 직접 타격 기준입니다. 차이는 ‘상대 − 내 캐릭터’이며, 비율 지표는 %p로 표시합니다.</p>
+      <p class="footnote">치명타율은 지속 피해(DOT)를 제외한 직접 타격 기준입니다. 차이는 ‘내 캐릭터 − 상대’이며, 내가 높으면 +로 표시합니다.</p>
     </section>
     <section class="section" aria-labelledby="setupTitle">
       <div class="sectionHead"><div><span class="step">02</span><h2 id="setupTitle">장비 · 스킬 · 스탯</h2></div><span class="tag">공식 정보실 · 조회 시점 기준</span></div>
       <p class="muted">서버를 확인하면 캐릭터의 현재 정보를 불러옵니다. 장비가 바뀌었다면 전투 당시 세팅과 다를 수 있습니다.</p>
       <div id="profiles" class="profiles"></div>
-      <div class="toolbar"><nav aria-label="비교 항목"><a href="#equipmentSection">장비 비교</a><a href="#skillsSection">스킬 비교</a><a href="#statsSection">스탯 비교</a></nav><label class="filter"><input id="differencesOnly" type="checkbox"> 차이 있는 항목만</label></div>
-      <section id="equipmentSection"><div class="subhead"><h3>부위별 장비 비교</h3><div class="subheadActions"><span class="muted">강화 · 돌파 · 추가 옵션</span><div class="equipmentView" role="group" aria-label="장비 종류 선택"><button type="button" class="active" data-equipment-view="all" aria-pressed="true">전체</button><button type="button" data-equipment-view="gear" aria-pressed="false">무기·방어구</button><button type="button" data-equipment-view="accessory" aria-pressed="false">장신구</button></div></div></div><div id="equipmentTable"></div></section>
+      <div class="toolbar"><nav aria-label="비교 항목"><a href="#equipmentSection">장비 비교</a><a href="#skillsSection">스킬 비교</a><a href="#statsSection">스탯 비교</a></nav><label class="filter"><input id="differencesOnly" type="checkbox" checked> 차이 있는 항목만</label></div>
+      <section id="equipmentSection"><div class="subhead"><h3>부위별 장비 비교</h3><div class="subheadActions"><span class="muted">강화 · 돌파 · 추가 옵션</span><div class="equipmentView" role="group" aria-label="장비 종류 선택"><button type="button" data-equipment-view="all" aria-pressed="false">전체</button><button type="button" class="active" data-equipment-view="gear" aria-pressed="true">무기·방어구</button><button type="button" data-equipment-view="accessory" aria-pressed="false">장신구</button></div></div></div><div id="equipmentTable"></div></section>
       <section id="skillsSection"><div class="subhead"><h3>스킬 레벨 비교</h3><span class="muted">습득한 스킬 · 현재 레벨</span></div><div id="skillsTable"></div></section>
       <section id="statsSection"><div class="subhead"><h3>스탯 비교</h3><span class="muted">수치와 적용 효과</span></div><div id="statsTable"></div></section>
     </section>
