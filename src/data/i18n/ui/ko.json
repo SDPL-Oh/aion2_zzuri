@@ -198,6 +198,9 @@
     "bossNameSize": {
       "label": "대상 이름 크기"
     },
+    "meterFontSize": {
+      "label": "미터 글자 크기"
+    },
     "targetWindow": {
       "label": "대상 시간 범위",
       "options": {

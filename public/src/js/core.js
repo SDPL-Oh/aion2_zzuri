@@ -60,6 +60,7 @@ class DpsApp {
       saveRawPackets: "dpsMeter.saveRawPackets",
       windowOpacity: "dpsMeter.windowOpacity",
       bossNameSize: "dpsMeter.bossNameSize",
+      meterFontSize: "dpsMeter.meterFontSize",
       betaUi: "dpsMeter.betaUi",
       detailsMonitor: "dpsMeter.detailsMonitor",
       showSuspendBtn: "dpsMeter.showSuspendBtn",
@@ -210,8 +211,9 @@ class DpsApp {
     window._dpsApp = this;
     this.elList = document.querySelector(".list");
     this.elBossName = document.querySelector(".bossName");
-    this.elBossName.textContent = this.getDefaultTargetLabel();
-    this._lastRenderedTargetLabel = this.elBossName.textContent;
+    this.elBossName.textContent = this.i18n?.t("header.title", "zzuring") ?? "zzuring";
+    this.elTargetName = document.querySelector(".bossTargetName");
+    this._lastRenderedTargetLabel = this.getDefaultTargetLabel();
     this.elBossHpBar = document.querySelector(".bossHpBar");
     this.elBossHpFill = document.querySelector(".bossHpFill");
     this.elBossHpText = document.querySelector(".bossHpText");
@@ -662,8 +664,8 @@ class DpsApp {
     this.meterUI?.onResetMeterUi?.();
     if (this.meterTotalBar) this.meterTotalBar.style.display = "none";
 
-    if (this.elBossName) {
-      this.elBossName.textContent = this.getDefaultTargetLabel();
+    if (this.elTargetName) {
+      this.elTargetName.textContent = "";
     }
     if (this.battleTimeRoot) {
       this.battleTimeRoot.classList.add("isVisible");
@@ -1022,12 +1024,12 @@ class DpsApp {
     }
     // render
     const nextTargetLabel = this.getTargetLabel({ targetId, targetName, targetMode });
-    if (this.elBossName) {
-      if (this.elBossName.textContent !== nextTargetLabel) {
-        this.elBossName.textContent = nextTargetLabel;
+    if (this.elTargetName) {
+      const realName = this.getRealTargetName({ targetId, targetName });
+      if (this.elTargetName.textContent !== realName) {
+        this.elTargetName.textContent = realName;
         this.fitBossName();
       }
-      this.elBossName.classList.toggle("isAllTargets", targetMode === "allTargets");
     }
     this.updateBossHpBar(targetMaxHp, targetTotalDamage, targetCurrentHp);
     if (
@@ -1139,6 +1141,8 @@ class DpsApp {
       // Combat power comes from the party roster packet, so it only exists for
       // players actually in your party; 0 means "unknown", not "zero CP".
       const combatPower = Math.trunc(Number(isObj ? value.combatPower : 0)) || 0;
+      const characterLevel = Math.trunc(Number(isObj ? value.characterLevel : 0)) || 0;
+      const equipmentLevel = Math.trunc(Number(isObj ? value.equipmentLevel : 0)) || 0;
 
       rows.push({
         id: String(id),
@@ -1148,6 +1152,8 @@ class DpsApp {
         totalDamage,
         damageContribution,
         combatPower,
+        characterLevel,
+        equipmentLevel,
         isUser: name === this.USER_NAME,
         isIdentifying,
       });
@@ -1256,6 +1262,20 @@ class DpsApp {
     this.fitBossName();
     if (persist) {
       this.safeSetSetting(this.storageKeys.bossNameSize, String(normalized));
+    }
+  }
+
+  normalizeMeterFontSize(value, fallback = 100) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return fallback;
+    return Math.min(150, Math.max(70, Math.round(numeric / 5) * 5));
+  }
+
+  applyMeterFontSize(percent, { persist } = {}) {
+    const normalized = this.normalizeMeterFontSize(percent, 100);
+    document.documentElement.style.setProperty("--meter-font-scale", String(normalized / 100));
+    if (persist) {
+      this.safeSetSetting(this.storageKeys.meterFontSize, String(normalized));
     }
   }
 
@@ -1895,6 +1915,8 @@ class DpsApp {
     this.meterOpacityValue = document.querySelector(".meterOpacityValue");
     this.bossNameSizeInput = document.querySelector(".bossNameSizeInput");
     this.bossNameSizeValue = document.querySelector(".bossNameSizeValue");
+    this.meterFontSizeInput = document.querySelector(".meterFontSizeInput");
+    this.meterFontSizeValue = document.querySelector(".meterFontSizeValue");
     this.windowOpacityInput = document.querySelector(".windowOpacityInput");
     this.windowOpacityValue = document.querySelector(".windowOpacityValue");
     this.discordButton = document.querySelector(".discordButton");
@@ -2154,6 +2176,26 @@ class DpsApp {
         const next = this.normalizeBossNameSize(event.target?.value, defaultBossNameSize);
         this.bossNameSizeValue.textContent = `${next}px`;
         this.applyBossNameSize(next, { persist: true });
+      });
+    }
+
+    // Meter text size (name / DPS / combat power / contribution, as a % scale)
+    if (this.meterFontSizeInput && this.meterFontSizeValue) {
+      const storedMeterFontSize = this.safeGetSetting(this.storageKeys.meterFontSize);
+      const resolvedMeterFontSize =
+        storedMeterFontSize !== null && String(storedMeterFontSize).trim() !== ""
+          ? this.normalizeMeterFontSize(storedMeterFontSize, 100)
+          : 100;
+      this.applyMeterFontSize(resolvedMeterFontSize, { persist: false });
+      this.meterFontSizeInput.value = String(resolvedMeterFontSize);
+      this.meterFontSizeValue.textContent = `${resolvedMeterFontSize}%`;
+      const stopMeterFontDrag = (event) => event.stopPropagation();
+      this.meterFontSizeInput.addEventListener("mousedown", stopMeterFontDrag);
+      this.meterFontSizeInput.addEventListener("touchstart", stopMeterFontDrag, { passive: true });
+      this.meterFontSizeInput.addEventListener("input", (event) => {
+        const next = this.normalizeMeterFontSize(event.target?.value, 100);
+        this.meterFontSizeValue.textContent = `${next}%`;
+        this.applyMeterFontSize(next, { persist: true });
       });
     }
 
@@ -3769,8 +3811,8 @@ class DpsApp {
     this.meterUI?.onResetMeterUi?.();
     this.renderCurrentRows();
 
-    if (this.elBossName) {
-      this.elBossName.textContent = this.getDefaultTargetLabel(this.targetSelection);
+    if (this.elTargetName) {
+      this.elTargetName.textContent = "";
     }
 
     const lastParsedAtMs = Number(window.javaBridge?.getLastParsedAtMs?.());
@@ -4083,7 +4125,7 @@ class DpsApp {
   }
 
   fitBossName() {
-    const el = this.elBossName;
+    const el = this.elTargetName;
     if (!el) return;
     const container = el.parentElement;
     if (!container) return;
@@ -4264,6 +4306,20 @@ class DpsApp {
     return this.getDefaultTargetLabel(targetMode);
   }
 
+  // The actual boss/mob name only — "" when there's nothing more specific
+  // than the current target-mode's generic label (idle, all-targets, no fight
+  // yet). Used for the secondary header label, which the app-name label
+  // ("zzuring") sits next to and stays fixed regardless of target state.
+  getRealTargetName({ targetId = 0, targetName = "" } = {}) {
+    const numericTargetId = Number(targetId);
+    const cleanTargetName = typeof targetName === "string" ? targetName.trim() : "";
+    if (Number.isFinite(numericTargetId) && numericTargetId > 0) {
+      const localizedName = this.i18n?.getNpcName?.(numericTargetId, cleanTargetName) ?? cleanTargetName;
+      return localizedName || `Mob #${numericTargetId}`;
+    }
+    return cleanTargetName;
+  }
+
   updateTargetModeButton() {
     if (!this.targetModeBtn) return;
     const isBossTargets = this.targetSelection === "bossTargets";
@@ -4286,16 +4342,14 @@ class DpsApp {
   }
 
   refreshBossLabel() {
-    if (!this.elBossName) return;
+    if (this.elBossName) {
+      this.elBossName.textContent = this.i18n?.t("header.title", "zzuring") ?? "zzuring";
+    }
+    if (!this.elTargetName) return;
     if (this.lastTargetName || this.lastTargetId) {
       return;
     }
-    this.elBossName.textContent = this.getTargetLabel({
-      targetMode: this.lastTargetMode,
-      targetId: this.lastTargetId,
-      targetName: this.lastTargetName,
-    });
-    this.elBossName.classList.toggle("isAllTargets", this.lastTargetMode === "allTargets");
+    this.elTargetName.textContent = "";
   }
 
   bindDragToMoveWindow() {

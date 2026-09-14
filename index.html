@@ -54,6 +54,7 @@
         <div class="header">
           <div class="bossNames">
             <span class="bossName"></span>
+            <span class="bossTargetName"></span>
           </div>
 
           <div class="headerBtns">
@@ -546,6 +547,24 @@
                         aria-label="Target name size"
                         data-i18n-aria-label="settings.bossNameSize.label" />
                       <div class="settingsValue bossNameSizeValue">15px</div>
+                    </div>
+                  </div>
+                  <div class="settingsRow settingsRowInput">
+                    <div class="settingsInfo">
+                      <div class="settingsLabel" data-i18n="settings.meterFontSize.label">Meter text size</div>
+                    </div>
+                    <div class="settingsRangeInline">
+                      <input
+                        id="meterFontSizeInput"
+                        class="settingsRange meterFontSizeInput"
+                        type="range"
+                        min="70"
+                        max="150"
+                        step="5"
+                        value="100"
+                        aria-label="Meter text size"
+                        data-i18n-aria-label="settings.meterFontSize.label" />
+                      <div class="settingsValue meterFontSizeValue">100%</div>
                     </div>
                   </div>
                   <div class="settingsRow settingsRowBoldToggles">

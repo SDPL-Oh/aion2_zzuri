@@ -72,6 +72,7 @@
   --details-skill-name-width: 144px;
   --tooltip-skill-icon-size: 20px;
   --window-opacity: 0.4;
+  --meter-font-scale: 1;
 }
 
 :root[data-theme="aion2"] {
@@ -504,6 +505,28 @@ html:lang(zh-Hant), html:lang(zh-Hant) body {
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.15;
+  flex: 0 0 auto;
+}
+/* Current boss/mob name, shown next to the fixed app label above. Empty
+   whenever there's no real target yet (idle, or a generic mode like "all
+   targets") — the target-mode badge in the footer already covers that case. */
+.header .bossNames .bossTargetName {
+  font-family: var(--hud-tech);
+  font-variation-settings: "wght" 500, "wdth" 87.5;
+  font-size: var(--boss-name-size, 15px);
+  letter-spacing: 0.02em;
+  color: var(--title);
+  opacity: 0.72;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.15;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.header .bossNames .bossTargetName:empty {
+  display: none;
 }
 .header .bossNames .bossName:lang(ko),
 .header .bossNames .bossName:lang(zh-CN),
@@ -517,6 +540,16 @@ html:lang(zh-Hant), html:lang(zh-Hant) body {
   font-size: calc(var(--boss-name-size, 15px) * 1.05);
   letter-spacing: 0.02em;
   text-transform: none;
+}
+.header .bossNames .bossTargetName:lang(ko),
+.header .bossNames .bossTargetName:lang(zh-CN),
+.header .bossNames .bossTargetName:lang(zh-Hans),
+.header .bossNames .bossTargetName:lang(zh-TW),
+.header .bossNames .bossTargetName:lang(zh-Hant) {
+  font-family: var(--cjk-font-stack);
+  font-weight: 500;
+  font-size: calc(var(--boss-name-size, 15px) * 1.05);
+  letter-spacing: normal;
 }
 
 .header .headerBtns {
@@ -751,7 +784,7 @@ html:lang(zh-Hant), html:lang(zh-Hant) body {
   flex: 0 1 auto;
   min-width: 0;
   font-family: var(--hud-ident);
-  font-size: 15px;
+  font-size: calc(15px * var(--meter-font-scale, 1));
   font-weight: 600;
   line-height: 1;
   color: var(--hud-name);
@@ -762,7 +795,7 @@ html:lang(zh-Hant), html:lang(zh-Hant) body {
 }
 .list .item .name.isCjk {
   font-family: var(--cjk-font-stack);
-  font-size: 14px;
+  font-size: calc(14px * var(--meter-font-scale, 1));
   letter-spacing: 0;
 }
 
@@ -794,7 +827,7 @@ html:lang(zh-Hant), html:lang(zh-Hant) body {
 .list .item .dps > p {
   margin: 0;
   font-variation-settings: "wght" 700, "wdth" 87.5;
-  font-size: 16px;
+  font-size: calc(16px * var(--meter-font-scale, 1));
   line-height: 1;
   letter-spacing: 0.01em;
   color: var(--hud-num);
@@ -804,7 +837,7 @@ html:lang(zh-Hant), html:lang(zh-Hant) body {
    moving bar the muted --hud-sub grey was hard to pick out. */
 .list .item .dps .dpsContribution {
   font-variation-settings: "wght" 600, "wdth" 75;
-  font-size: 11px;
+  font-size: calc(11px * var(--meter-font-scale, 1));
   color: rgba(255, 255, 255, 0.88);
   min-width: 34px;
   text-align: right;
@@ -888,7 +921,7 @@ html:lang(zh-Hant), html:lang(zh-Hant) body {
    헤더 컬럼과 폭을 맞춰 세로로 정렬. */
 .list .item .dps .totalDmg {
   font-variation-settings: "wght" 600, "wdth" 80;
-  font-size: 13px;
+  font-size: calc(13px * var(--meter-font-scale, 1));
   line-height: 1;
   color: rgba(255, 255, 255, 0.7);
   order: -1;
@@ -900,7 +933,7 @@ html:lang(zh-Hant), html:lang(zh-Hant) body {
   content: "";
 }
 .meter.slim .list .item .dps .totalDmg {
-  font-size: 11px;
+  font-size: calc(11px * var(--meter-font-scale, 1));
 }
 
 /* 전투력 · DPS · 기여도도 헤더와 같은 고정폭으로 맞춰 세로 정렬 */
@@ -1162,11 +1195,11 @@ body.mainPlayerDpsBold .meter .item .content .dps > p {
 .meter.slim .list .item .content { gap: 5px; }
 .meter.slim .list .item .rank { min-width: 11px; font-size: 9px; }
 .meter.slim .list .item .classIcon { width: 15px; height: 15px; }
-.meter.slim .list .item .name { font-size: 11.5px; }
-.meter.slim .list .item .name.isCjk { font-size: 11px; }
+.meter.slim .list .item .name { font-size: calc(11.5px * var(--meter-font-scale, 1)); }
+.meter.slim .list .item .name.isCjk { font-size: calc(11px * var(--meter-font-scale, 1)); }
 .meter.slim .list .item .dps { gap: 5px; margin-right: -6px; padding: 0 6px 0 14px; }
-.meter.slim .list .item .dps > p { font-size: 12.5px; }
-.meter.slim .list .item .dps .dpsContribution { font-size: 9px; min-width: 28px; }
+.meter.slim .list .item .dps > p { font-size: calc(12.5px * var(--meter-font-scale, 1)); }
+.meter.slim .list .item .dps .dpsContribution { font-size: calc(9px * var(--meter-font-scale, 1)); min-width: 28px; }
 .meter.slim .meterFooter { height: 19px; padding: 0 19px 0 8px; }
 .meter.slim .pingDisplay { font-size: 10px; }
 .meter.slim .pingDisplay .pingIcon { width: 11px; height: 11px; }

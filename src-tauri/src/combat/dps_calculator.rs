@@ -365,12 +365,24 @@ impl DpsCalculator {
         for (&uid, data) in &mut dps_data.map {
             // Combat power joins on the character name: the roster carries an
             // account-level dbid, not the session entity id keyed here.
-            data.combat_power = party_members
-                .get(&data.nickname)
-                .map(|m| m.combat_power)
-                .unwrap_or(0);
+            if let Some(member) = party_members.get(&data.nickname) {
+                data.combat_power = member.combat_power;
+                data.character_level = member.level;
+                data.equipment_level = member.gear_score;
+            } else {
+                data.combat_power = 0;
+                data.character_level = 0;
+                data.equipment_level = 0;
+            }
             if data.job.is_empty() {
-                if local_ids.as_ref().is_some_and(|ids| ids.contains(&uid)) {
+                // A party member is confirmed by the roster packet independently of
+                // whether we ever saw their spawn packet (e.g. they were already in
+                // the zone when we joined the party, or it arrived before capture
+                // locked on) — so an unresolved job class shouldn't drop them like it
+                // would an unidentified, unrelated entity.
+                let is_local = local_ids.as_ref().is_some_and(|ids| ids.contains(&uid));
+                let is_party_member = party_members.contains_key(&data.nickname);
+                if is_local || is_party_member {
                     data.job = "Unknown".to_string();
                 } else {
                     to_remove.push(uid);
