@@ -10,6 +10,7 @@
   getSortDirection,
   getPinUserToTop,
   getPlayerLimit,
+  getRowColor,
 }) => {
   const MAX_CACHE = 32;
   const cjkRegex = /[\u3400-\u9FFF\uF900-\uFAFF]/;
@@ -59,14 +60,9 @@
     const nameEl = document.createElement("div");
     nameEl.className = "name";
 
-    // Party combat power, shown beside the name. Hidden unless the party roster
-    // packet supplied a value for this player.
-    const combatPowerEl = document.createElement("span");
-    combatPowerEl.className = "combatPower";
-    combatPowerEl.style.display = "none";
-
-    // 개인 사용 심플 모드: 팀원명 / 전투력 / 총딜량 / DPS / 기여도 만 표시.
-    // 랭크 번호와 직업 아이콘은 요청한 5개 항목에 없어 렌더링에서 뺀다.
+    // 개인 사용 심플 모드: 직업 아이콘 / 팀원명(전투력, 장비점수 포함) / 총딜량 / DPS /
+    // 기여도 / 비교 표시. 랭크 번호는 요청한 항목에 없어 렌더링에서 뺀다. 전투력·
+    // 장비점수는 별도 컬럼 대신 이름 옆 괄호로 표시한다 (renderRows의 nameText 조립부 참고).
     const totalDmgEl = document.createElement("p");
     totalDmgEl.className = "totalDmg";
 
@@ -80,8 +76,8 @@
     dpsContainer.appendChild(dpsNumber);
     dpsContainer.appendChild(dpsContribution);
 
+    contentEl.appendChild(classIconEl);
     contentEl.appendChild(nameEl);
-    contentEl.appendChild(combatPowerEl);
     contentEl.appendChild(dpsContainer);
     const compareLink = document.createElement("a");
     compareLink.className = "compareCharacterLink";
@@ -104,7 +100,6 @@
       rowEl,
       prevContribClass: "",
       nameEl,
-      combatPowerEl,
       rankEl,
       dpsContainer,
       classIconEl,
@@ -117,7 +112,6 @@
       lastSeenAt: 0,
       isVisible: false,
       lastNameText: "",
-      lastCombatPowerText: "",
       lastTotalDmgText: "",
       lastIsCjk: false,
       lastMetricText: "",
@@ -125,6 +119,7 @@
       lastRankText: "",
       lastFillRatio: -1,
       lastClassIconSrc: "",
+      lastRowColor: "",
       lastIsUser: false,
       lastIsIdentifying: false,
       hoverRipplePlayed: false,
@@ -303,25 +298,17 @@
       }
 
       const rowId = row.id ?? row.name ?? "";
-      const nameText = row.isIdentifying
+      const baseNameText = row.isIdentifying
         ? window.i18n?.format?.("meter.identifyingPlayer", { id: rowId }, `#${rowId}`) ??
           `#${rowId}`
         : row.name ?? "";
-      if (view.lastNameText !== nameText) {
-        view.nameEl.textContent = nameText;
-        view.lastNameText = nameText;
-      }
 
-      const isCjk = cjkRegex.test(nameText);
-      if (view.lastIsCjk !== isCjk) {
-        view.nameEl.classList.toggle("isCjk", isCjk);
-        view.lastIsCjk = isCjk;
-      }
-
-      // Combat power sits beside the name, abbreviated to thousands the way
-      // players quote it — 889,100 reads as "889k", 889,545 as "890k". The
-      // exact figure stays on the row for the details panel. Below 500 the
-      // abbreviation would collapse to "0k", so show the raw number there.
+      // Combat power and equipment (gear) score both come from the party
+      // roster packet, so they only exist for players in your party — shown
+      // inline next to the name instead of a separate column. Combat power is
+      // abbreviated to thousands the way players quote it — 889,100 reads as
+      // "889k", 889,545 as "890k"; below 500 that would collapse to "0k", so
+      // the raw number is shown there instead.
       const combatPower = Number(row.combatPower) || 0;
       const combatPowerK = Math.round(combatPower / 1000);
       const combatPowerText =
@@ -330,10 +317,23 @@
           : combatPowerK > 0
             ? `${combatPowerK.toLocaleString()}k`
             : combatPower.toLocaleString();
-      if (view.lastCombatPowerText !== combatPowerText) {
-        view.combatPowerEl.textContent = combatPowerText;
-        view.combatPowerEl.style.display = combatPowerText ? "" : "none";
-        view.lastCombatPowerText = combatPowerText;
+      const equipmentLevel = Number(row.equipmentLevel) || 0;
+      const statsParts = [];
+      if (combatPowerText) statsParts.push(combatPowerText);
+      if (equipmentLevel > 0) statsParts.push(equipmentLevel.toLocaleString());
+      const nameText = statsParts.length ? `${baseNameText} (${statsParts.join(", ")})` : baseNameText;
+      if (view.lastNameText !== nameText) {
+        view.nameEl.textContent = nameText;
+        // Combat power/gear score routinely push this past the row's width;
+        // the ellipsis hides them, so the full text is still one hover away.
+        view.nameEl.title = nameText;
+        view.lastNameText = nameText;
+      }
+
+      const isCjk = cjkRegex.test(baseNameText);
+      if (view.lastIsCjk !== isCjk) {
+        view.nameEl.classList.toggle("isCjk", isCjk);
+        view.lastIsCjk = isCjk;
       }
 
       if (row.job && !!row.job) {
@@ -356,6 +356,21 @@
         if (view.classIconImg.style.visibility !== "hidden") {
           view.classIconImg.style.visibility = "hidden";
         }
+      }
+
+      // "포지션별 색상" setting: overrides the theme's flat bar color with a
+      // per-job one. An inline custom property beats the .isUser/.warning/
+      // .error class rules that also set --bar, by design — job color is a
+      // different, mutually-exclusive way to read the row than contribution
+      // warnings are.
+      const rowColor = typeof getRowColor === "function" ? getRowColor(row) || "" : "";
+      if (view.lastRowColor !== rowColor) {
+        if (rowColor) {
+          view.fillEl.style.setProperty("--bar", rowColor);
+        } else {
+          view.fillEl.style.removeProperty("--bar");
+        }
+        view.lastRowColor = rowColor;
       }
 
       const metric = resolveMetric(row) || { value: 0, text: "-" };

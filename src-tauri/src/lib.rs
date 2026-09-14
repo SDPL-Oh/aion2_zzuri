@@ -60,6 +60,7 @@ pub struct AppState {
     pub npc_lookup: Arc<NpcLookup>,
     pub app_data_dir: std::path::PathBuf,
     pub i18n_data_dir: Option<std::path::PathBuf>,
+    pub hotkey_manager: platform::hotkeys::HotkeyManager,
 }
 
 // ===== TAURI COMMANDS =====
@@ -119,6 +120,31 @@ fn get_settings(state: tauri::State<'_, AppState>) -> std::collections::HashMap<
     state.settings.get_all()
 }
 
+/// The registered reload hotkey fired: clear the backend's accumulated combat
+/// state and tell every window to clear its own cached view of it.
+fn hotkey_reload_action(h: &tauri::AppHandle) {
+    tracing::info!("Hotkey: reload triggered");
+    if let Some(state) = h.try_state::<AppState>() {
+        state.dps_calculator.lock().restart_target_selection(true);
+        state.data_storage.reset_nicknames();
+    }
+    let _ = h.emit("combat-reset", ());
+    let _ = h.emit("dps-update", &entity::dps_data::DpsData::new());
+}
+
+/// The registered toggle-window hotkey fired: show or hide the main overlay.
+fn hotkey_toggle_action(h: &tauri::AppHandle) {
+    if let Some(window) = h.get_webview_window("main") {
+        if window.is_visible().unwrap_or(false) {
+            let _ = window.hide();
+        } else {
+            let _ = window.show();
+            let _ = window.set_always_on_top(true);
+            let _ = window.set_focus();
+        }
+    }
+}
+
 /// Store a setting and tell every window about it.
 ///
 /// Settings are edited in their own window, so without this broadcast the meter
@@ -135,6 +161,31 @@ fn update_settings(
 ) {
     if state.settings.set(&key, &value) {
         let _ = app.emit("setting-changed", serde_json::json!({ "key": key, "value": value }));
+        // The Settings UI only persists a rebound key/reload shortcut here — the
+        // actual Win32 RegisterHotKey call happened once at startup, so without
+        // this it silently keeps the old binding until the app is relaunched.
+        if key == "dpsMeter.hotkey" || key == "dpsMeter.toggleWindowHotkey" {
+            let reload_label = state.settings.get("dpsMeter.hotkey").unwrap_or_default();
+            let toggle_label = state.settings.get("dpsMeter.toggleWindowHotkey").unwrap_or_default();
+            let (reload_mods, reload_vk) = platform::hotkeys::parse_hotkey_label(&reload_label)
+                .unwrap_or((0x0002 | 0x0001, 0x52)); // Default: Ctrl+Alt+R
+            let (toggle_mods, toggle_vk) = platform::hotkeys::parse_hotkey_label(&toggle_label)
+                .unwrap_or((0x0002 | 0x0001, 0x26)); // Default: Ctrl+Alt+Up
+
+            state.hotkey_manager.stop();
+            // Give the old listener thread a moment to notice `running` went
+            // false and unregister its hotkeys before the new thread tries to
+            // register the same slot ids — see HotkeyManager's message loop.
+            std::thread::sleep(std::time::Duration::from_millis(100));
+
+            let h1 = app.clone();
+            let h2 = app.clone();
+            state.hotkey_manager.start(
+                reload_mods, reload_vk, toggle_mods, toggle_vk,
+                move || hotkey_reload_action(&h1),
+                move || hotkey_toggle_action(&h2),
+            );
+        }
     }
 }
 
@@ -1333,6 +1384,7 @@ pub fn run() {
                 npc_lookup: npc_lookup.clone(),
                 app_data_dir: app_data_dir.clone(),
                 i18n_data_dir: found_data_dir.clone(),
+                hotkey_manager: platform::hotkeys::HotkeyManager::new(),
             };
 
             app.manage(state);
@@ -1409,13 +1461,16 @@ pub fn run() {
                 dispatcher.run(rx).await;
             });
 
-            // Register global hotkeys from saved settings (or defaults)
+            // Register global hotkeys from saved settings (or defaults). The
+            // HotkeyManager lives in AppState so update_settings can stop and
+            // restart it with new bindings when the user rebinds a shortcut —
+            // see the hotkey branch there.
             let hotkey_handle = app.handle().clone();
-            let hotkey_manager = platform::hotkeys::HotkeyManager::new();
+            let state_ref = app.state::<AppState>();
 
-            let reload_label = app.state::<AppState>().settings
+            let reload_label = state_ref.settings
                 .get("dpsMeter.hotkey").unwrap_or_default();
-            let toggle_label = app.state::<AppState>().settings
+            let toggle_label = state_ref.settings
                 .get("dpsMeter.toggleWindowHotkey").unwrap_or_default();
 
             let (reload_mods, reload_vk) = platform::hotkeys::parse_hotkey_label(&reload_label)
@@ -1423,37 +1478,13 @@ pub fn run() {
             let (toggle_mods, toggle_vk) = platform::hotkeys::parse_hotkey_label(&toggle_label)
                 .unwrap_or((0x0002 | 0x0001, 0x26)); // Default: Ctrl+Alt+Up
 
-            hotkey_manager.start(
+            let h1 = hotkey_handle.clone();
+            let h2 = hotkey_handle;
+            state_ref.hotkey_manager.start(
                 reload_mods, reload_vk,
                 toggle_mods, toggle_vk,
-                {
-                    let h = hotkey_handle.clone();
-                    move || {
-                        tracing::info!("Hotkey: reload triggered");
-                        if let Some(state) = h.try_state::<AppState>() {
-                            state.dps_calculator.lock().restart_target_selection(true);
-                            state.data_storage.reset_nicknames();
-                        }
-                        // Notify frontend to clear UI
-                        let _ = h.emit("combat-reset", ());
-                        let _ = h.emit("dps-update", &entity::dps_data::DpsData::new());
-                    }
-                },
-                {
-                    let h = hotkey_handle;
-                    move || {
-                        // Toggle window visibility
-                        if let Some(window) = h.get_webview_window("main") {
-                            if window.is_visible().unwrap_or(false) {
-                                let _ = window.hide();
-                            } else {
-                                let _ = window.show();
-                                let _ = window.set_always_on_top(true);
-                                let _ = window.set_focus();
-                            }
-                        }
-                    }
-                },
+                move || hotkey_reload_action(&h1),
+                move || hotkey_toggle_action(&h2),
             );
 
             // Periodic DPS update emission (every 500ms)

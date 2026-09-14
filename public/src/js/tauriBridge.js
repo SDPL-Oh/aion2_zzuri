@@ -462,7 +462,7 @@
 
     // --- Hotkeys ---
     getCurrentHotKey() {
-      return this.getSetting("dpsMeter.hotkey") || "Ctrl+Alt+Shift+R";
+      return this.getSetting("dpsMeter.hotkey") || "Ctrl+Alt+R";
     },
     getCurrentToggleWindowHotKey() {
       return this.getSetting("dpsMeter.toggleWindowHotkey") || "Ctrl+Alt+Up";

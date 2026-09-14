@@ -862,27 +862,25 @@ html:lang(zh-Hant), html:lang(zh-Hant) body {
 }
 
 /* --- 개인용 심플 모드 커스터마이징 ---
-   요청한 5개 항목(팀원명 / 전투력 / 총딜량 / DPS / 기여도)만 남기고,
-   랭크 번호 · 직업 아이콘 · DPS/총딜량 토글 버튼은 숨긴다. */
+   랭크 번호 · DPS/총딜량 토글 버튼은 숨긴다. 직업 아이콘은 다시 표시. */
 .list .item .rank,
-.list .item .classIcon,
 .footerBtns .metricToggleBtn {
   display: none !important;
 }
 
-/* 5개 항목 컬럼 폭 — 헤더와 각 행이 같은 값을 참조해서 세로로 숫자가
+/* 컬럼 폭 — 헤더와 각 행이 같은 값을 참조해서 세로로 숫자가
    딱 맞게 정렬되도록 한다 (가독성 개선의 핵심). */
 :root {
-  --col-cp: 46px;
   --col-total: 58px;
   --col-dps: 78px;
   --col-contrib: 40px;
+  --col-compare: 34px;
 }
 .meter.slim {
-  --col-cp: 40px;
   --col-total: 50px;
   --col-dps: 68px;
   --col-contrib: 34px;
+  --col-compare: 30px;
 }
 
 /* 컬럼 헤더: 처음 보는 사람도 각 숫자가 무엇인지 바로 알 수 있게,
@@ -902,7 +900,6 @@ html:lang(zh-Hant), html:lang(zh-Hant) body {
   user-select: none;
 }
 .meterColumnHeader .colName { flex: 1 1 auto; text-align: left; }
-.meterColumnHeader .colCP { flex: 0 0 var(--col-cp); width: var(--col-cp); text-align: right; }
 .meterColumnHeader .dps.colDpsGroup {
   display: flex;
   align-items: center;
@@ -915,6 +912,7 @@ html:lang(zh-Hant), html:lang(zh-Hant) body {
 .meterColumnHeader .colTotal { flex: 0 0 var(--col-total); width: var(--col-total); text-align: right; }
 .meterColumnHeader .colDpsLabel { flex: 0 0 var(--col-dps); width: var(--col-dps); text-align: right; }
 .meterColumnHeader .colContrib { flex: 0 0 var(--col-contrib); width: var(--col-contrib); text-align: right; }
+.meterColumnHeader .colCompare { flex: 0 0 var(--col-compare); width: var(--col-compare); text-align: center; }
 .meter.slim .meterColumnHeader { font-size: 8.5px; padding-top: 2px; padding-bottom: 3px; }
 
 /* 총딜량: DPS 숫자 왼쪽에 붙여서 "총딜 / DPS" 두 수치가 함께 보이게 함.
@@ -936,12 +934,7 @@ html:lang(zh-Hant), html:lang(zh-Hant) body {
   font-size: calc(11px * var(--meter-font-scale, 1));
 }
 
-/* 전투력 · DPS · 기여도도 헤더와 같은 고정폭으로 맞춰 세로 정렬 */
-.list .item .combatPower {
-  flex: 0 0 var(--col-cp) !important;
-  width: var(--col-cp);
-  text-align: right;
-}
+/* DPS · 기여도도 헤더와 같은 고정폭으로 맞춰 세로 정렬 */
 .list .item .dps > p:not(.totalDmg):not(.dpsContribution) {
   flex: 0 0 var(--col-dps);
   width: var(--col-dps);
@@ -956,51 +949,6 @@ html:lang(zh-Hant), html:lang(zh-Hant) body {
    안 들어와서 가독성 차원에서 추가. */
 .list .item.warning .dps .dpsContribution { color: var(--warning-fill); }
 .list .item.error .dps .dpsContribution { color: var(--error-fill); }
-
-/* Party combat power in thousands ("864k"), sat between the name and the
-   readout. Cyan sets it apart
-   as a different kind of number from the white DPS figure — it is reference
-   information about the player, not something that moves during a fight — and
-   it holds its own width so the name ellipsis never fights it for space. Only
-   rendered for players the party roster packet covers. */
-.list .item .combatPower {
-  /* 개인용 심플 모드: 헤더와 세로 정렬을 맞추기 위해 고정폭 + 우측 정렬로 변경
-     (고정폭 규칙은 아래 커스터마이징 블록에 있음). */
-  font-family: var(--hud-tech);
-  font-variant-numeric: tabular-nums;
-  font-variation-settings: "wght" 600, "wdth" 75;
-  font-size: 10.5px;
-  line-height: 1;
-  letter-spacing: 0.02em;
-  /* The cyan the game itself uses for combat power, so the number reads as the
-     same stat players already know from the character sheet. */
-  color: #78f2fb;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
-  white-space: nowrap;
-  /* Optical centring against the name. The row centres flex items by their
-     boxes, but the name is Pretendard and this is Bahnschrift at a smaller
-     size, and the two fonts put their baselines at different fractions of the
-     box — measured live, that left this number's cap-height midpoint 1.5px
-     above the name's. Nudged rather than baseline-aligned so it centres on the
-     name instead of sitting on its baseline. `relative` keeps it out of layout. */
-  position: relative;
-  top: 1.5px;
-}
-/* A CJK name renders from a different font stack at a different size, which
-   moves the target: measured, the same nudge overshoots by 1px there. The
-   combat power is always the name's next sibling, so it can be corrected
-   per-row without the JS having to know. */
-.list .item .name.isCjk + .combatPower {
-  top: 0.5px;
-}
-.meter.slim .list .item .combatPower {
-  font-size: 9px;
-  /* Same correction at the slim type scale (11.5px name / 9px figure). */
-  top: 1px;
-}
-.meter.slim .list .item .name.isCjk + .combatPower {
-  top: 0.5px;
-}
 
 .meter .item.isIdentifying .content .name {
   font-size: 13px;
@@ -6688,15 +6636,19 @@ html.settingsWindow .meter {
   cursor: auto;
 }
 
-/* Explicit comparison link keeps the existing row/detail click behavior. */
+/* Explicit comparison link keeps the existing row/detail click behavior.
+   Fixed to the header's --col-compare width so it lines up with "비교". */
 .list .item .compareCharacterLink {
-  flex: 0 0 auto;
+  flex: 0 0 var(--col-compare);
+  width: var(--col-compare);
+  box-sizing: border-box;
   color: #a8bcff;
   font-size: 10px;
-  padding: 4px 5px;
+  padding: 4px 2px;
   border: 1px solid #849efb55;
   border-radius: 4px;
   text-decoration: none;
+  text-align: center;
   position: relative;
   pointer-events: auto;
 }

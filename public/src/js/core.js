@@ -4,6 +4,7 @@ const REMOTE_APPLIED_SETTING_CONTROLS = {
   "dpsMeter.roundDps": ".roundDpsCheckbox",
   "dpsMeter.showTotalDps": ".showTotalDpsCheckbox",
   "dpsMeter.pinMeToTop": ".pinMeToTopCheckbox",
+  "dpsMeter.colorByJob": ".colorByJobCheckbox",
   "dpsMeter.mainPlayerNamesBold": ".playerNamesBoldCheckbox",
   "dpsMeter.mainPlayerDpsBold": ".playerDpsBoldCheckbox",
   "dpsMeter.showPing": ".showPingCheckbox",
@@ -20,6 +21,7 @@ class DpsApp {
     this.onlyShowUser = false;
     this.debugLoggingEnabled = false;
     this.pinMeToTop = false;
+    this.colorByJob = false;
     this.slimMode = false;
     this.mainPlayerNamesBold = true;
     this.mainPlayerDpsBold = true;
@@ -47,6 +49,7 @@ class DpsApp {
       language: "dpsMeter.language",
       debugLogging: "dpsMeter.debugLoggingEnabled",
       pinMeToTop: "dpsMeter.pinMeToTop",
+      colorByJob: "dpsMeter.colorByJob",
       mainPlayerNamesBold: "dpsMeter.mainPlayerNamesBold",
       mainPlayerDpsBold: "dpsMeter.mainPlayerDpsBold",
       showPing: "dpsMeter.showPing",
@@ -227,7 +230,6 @@ class DpsApp {
     this.closeBtn = document.querySelector(".closeBtn");
     this.suspendBtn = document.querySelector(".suspendBtn");
     this.headerBtns = document.querySelector(".headerBtns");
-    this.targetModeBtn = document.querySelector(".footerBtns .targetModeBtn");
     this.collapseBtn = document.querySelector(".collapseBtn");
     this.metricToggleBtn = document.querySelector(".metricToggleBtn");
 
@@ -245,6 +247,7 @@ class DpsApp {
       getSortDirection: () => this.listSortDirection,
       getPinUserToTop: () => this.pinMeToTop,
       getPlayerLimit: () => this.playerLimit,
+      getRowColor: (row) => (this.colorByJob ? this.getJobColor(row?.job) : ""),
       onHoverUserRow: (row, event) => {
         if (this.shouldSuppressRowInteractions()) return;
         this.openHoverDetailsRow(row, event);
@@ -482,7 +485,6 @@ class DpsApp {
     });
     // 개인용 심플 버전: 자동 업데이트 확인 비활성화 (checkRelease.js 삭제됨).
     this.setupConsoleDebugging();
-    this.bindNativeHotkeyBridge();
 
     // 심플 모드: 총딜량은 meter.js가 항상 별도로 표시하므로, DPS/총딜량 토글
     // 자체는 항상 "dps" 고정 (이전에 저장된 값은 무시).
@@ -512,15 +514,6 @@ class DpsApp {
     this.startPolling();
     this.startWindowTitlePolling();
     this.fetchDps();
-  }
-
-  bindNativeHotkeyBridge() {
-    if (this._nativeHotkeyBridgeBound) return;
-    this._nativeHotkeyBridgeBound = true;
-
-    window.addEventListener("nativeResetHotKey", () => {
-      this.refreshDamageData({ reason: "native hotkey refresh" });
-    });
   }
 
   nowMs() {
@@ -1830,23 +1823,6 @@ class DpsApp {
     this.suspendBtn?.addEventListener("click", () => {
       this._setCaptureSuspended(!this._captureSuspended);
     });
-    this.targetModeBtn?.addEventListener("click", () => {
-      const modes = ["lastHitByMe", "bossTargets", "trainTargets", "allTargets"];
-      const currentIndex = modes.indexOf(this.targetSelection);
-      const nextMode = modes[(currentIndex + 1) % modes.length];
-      console.log("[Target Mode Toggle]", {
-        from: this.targetSelection,
-        to: nextMode,
-      });
-      this.setTargetSelection(nextMode, {
-        persist: true,
-        syncBackend: true,
-        reason: "header toggle",
-      });
-      if (!this.isCollapse) {
-        this.fetchDps();
-      }
-    });
     // 심플 모드에서는 총딜량/DPS를 항상 같이 보여주므로 토글 버튼은 비활성화.
     // (버튼 자체는 CSS로 숨김 처리됨 — styles.css .metricToggleBtn { display: none })
 
@@ -1892,8 +1868,6 @@ class DpsApp {
     this.targetWindowDropdownMenu = document.querySelector(".targetWindowDropdownMenu");
     this.trainSelectionModeDropdownBtn = document.querySelector(".trainSelectionModeDropdownBtn");
     this.trainSelectionModeDropdownMenu = document.querySelector(".trainSelectionModeDropdownMenu");
-    this.defaultMeterModeDropdownBtn = document.querySelector(".defaultMeterModeDropdownBtn");
-    this.defaultMeterModeDropdownMenu = document.querySelector(".defaultMeterModeDropdownMenu");
     this.resetDetectBtn = document.querySelector(".resetDetectBtn");
     this.autoDetectDeviceCheckbox = document.querySelector(".autoDetectDeviceCheckbox");
     this.deviceDropdownBtn = document.querySelector(".deviceDropdownBtn");
@@ -1904,6 +1878,7 @@ class DpsApp {
     this.showPingCheckbox = document.querySelector(".showPingCheckbox");
     this.saveRawPacketsCheckbox = document.querySelector(".saveRawPacketsCheckbox");
     this.pinMeToTopCheckbox = document.querySelector(".pinMeToTopCheckbox");
+    this.colorByJobCheckbox = document.querySelector(".colorByJobCheckbox");
     this.detailsMonitorDropdownBtn = document.querySelector(".detailsMonitorDropdownBtn");
     this.detailsMonitorDropdownMenu = document.querySelector(".detailsMonitorDropdownMenu");
     this.detailsMonitorHint = document.querySelector(".detailsMonitorHint");
@@ -1928,7 +1903,6 @@ class DpsApp {
     this.settingsSelections = {
       language: "en",
       theme: this.theme,
-      defaultMeterMode: "bossTargets",
       allTargetsWindowMs: "120000",
       trainSelectionMode: "all",
       targetSelectionWindowMs: "5000",
@@ -1953,12 +1927,11 @@ class DpsApp {
     }
     const storedDebugLogging = this.safeGetSetting(this.storageKeys.debugLogging) === "true";
     const storedPinMeToTop = this.safeGetSetting(this.storageKeys.pinMeToTop) === "true";
+    const storedColorByJob = this.safeGetSetting(this.storageKeys.colorByJob) === "true";
     const mainPlayerNamesBoldSetting = this.safeGetSetting(this.storageKeys.mainPlayerNamesBold);
     const storedMainPlayerNamesBold = mainPlayerNamesBoldSetting !== "false";
     const mainPlayerDpsBoldSetting = this.safeGetSetting(this.storageKeys.mainPlayerDpsBold);
     const storedMainPlayerDpsBold = mainPlayerDpsBoldSetting !== "false";
-    const storedDefaultMeterMode = this.safeGetSetting(this.storageKeys.defaultMeterMode) || "bossTargets";
-    const storedTargetSelection = this.safeGetStorage(this.storageKeys.targetSelection);
     const storedLanguage = this.safeGetStorage(this.storageKeys.language);
     const storedTheme = this.safeGetSetting(this.storageKeys.theme);
 
@@ -1966,6 +1939,7 @@ class DpsApp {
     this.setOnlyShowUser(false, { persist: false });
     this.setDebugLogging(storedDebugLogging, { persist: false, syncBackend: true });
     this.setPinMeToTop(storedPinMeToTop, { persist: false });
+    this.setColorByJob(storedColorByJob, { persist: false });
     this.setBetaUi(this.safeGetSetting(this.storageKeys.betaUi) !== "false", { persist: false });
     const storedSlimMode = this.safeGetSetting(this.storageKeys.slimMode) === "true";
     this.setSlimMode(storedSlimMode, { persist: false });
@@ -1977,14 +1951,11 @@ class DpsApp {
     if (mainPlayerDpsBoldSetting === null || mainPlayerDpsBoldSetting === undefined || mainPlayerDpsBoldSetting === "") {
       this.safeSetSetting(this.storageKeys.mainPlayerDpsBold, "true");
     }
-    const validModes = ["bossTargets", "lastHitByMe", "allTargets", "trainTargets"];
-    const normalizedDefaultMode = validModes.includes(storedDefaultMeterMode)
-      ? storedDefaultMeterMode : "bossTargets";
-    this.settingsSelections.defaultMeterMode = normalizedDefaultMode;
-    this.setTargetSelection(normalizedDefaultMode, {
+    // 보스 몬스터만 추적하도록 고정 — 타겟/전체/훈련 모드 선택 UI는 삭제됨.
+    this.setTargetSelection("bossTargets", {
       persist: false,
       syncBackend: true,
-      reason: "default meter mode setting",
+      reason: "boss-only mode (fixed)",
     });
     this.applyTheme(storedTheme || this.theme, { persist: false });
     if (storedLanguage) {
@@ -2119,6 +2090,13 @@ class DpsApp {
       this.pinMeToTopCheckbox.addEventListener("change", (event) => {
         const isChecked = !!event.target?.checked;
         this.setPinMeToTop(isChecked, { persist: true });
+      });
+    }
+    if (this.colorByJobCheckbox) {
+      this.colorByJobCheckbox.checked = this.colorByJob;
+      this.colorByJobCheckbox.addEventListener("change", (event) => {
+        const isChecked = !!event.target?.checked;
+        this.setColorByJob(isChecked, { persist: true });
       });
     }
     if (this.playerNamesBoldCheckbox) {
@@ -2530,13 +2508,6 @@ class DpsApp {
       { value: "300000", label: this.i18n?.t("settings.allTargetsWindow.options.5m", "5 minutes") },
     ];
 
-    const defaultMeterModeOptions = [
-      { value: "lastHitByMe", label: this.i18n?.t("settings.defaultMeterMode.options.lastHitByMe", "TARGET") },
-      { value: "bossTargets", label: this.i18n?.t("settings.defaultMeterMode.options.bossTargets", "BOSS") },
-      { value: "allTargets", label: this.i18n?.t("settings.defaultMeterMode.options.allTargets", "ALL") },
-      { value: "trainTargets", label: this.i18n?.t("settings.defaultMeterMode.options.trainTargets", "TRAIN") },
-    ];
-
     const trainModeOptions = [
       { value: "all", label: this.i18n?.t("settings.trainingMode.options.all", "All") },
       {
@@ -2670,23 +2641,6 @@ class DpsApp {
       }
     );
 
-    setupDropdown(
-      this.defaultMeterModeDropdownBtn,
-      this.defaultMeterModeDropdownMenu,
-      defaultMeterModeOptions,
-      this.settingsSelections.defaultMeterMode,
-      (value) => {
-        if (!value) return;
-        this.settingsSelections.defaultMeterMode = value;
-        this.safeSetSetting(this.storageKeys.defaultMeterMode, value);
-        this.setTargetSelection(value, {
-          persist: true,
-          syncBackend: true,
-          reason: "default meter mode changed",
-        });
-        if (!this.isCollapse) this.fetchDps();
-      }
-    );
   }
 
   setupDetailsPanelSettings() {
@@ -3295,6 +3249,17 @@ class DpsApp {
     this.renderCurrentRows();
   }
 
+  setColorByJob(enabled, { persist = false } = {}) {
+    this.colorByJob = !!enabled;
+    if (this.colorByJobCheckbox && document.activeElement !== this.colorByJobCheckbox) {
+      this.colorByJobCheckbox.checked = this.colorByJob;
+    }
+    if (persist) {
+      this.safeSetSetting(this.storageKeys.colorByJob, String(this.colorByJob));
+    }
+    this.renderCurrentRows();
+  }
+
   // The "details" window runs this same bundle. Rather than a second app, it
   // reuses the panel that already exists in index.html: the overlay chrome is
   // hidden by CSS and the panel is held open on the whole fight.
@@ -3673,7 +3638,6 @@ class DpsApp {
       );
       this._lastTargetSelection = this.targetSelection;
     }
-    this.updateTargetModeButton();
   }
 
   applyTheme(themeId, { persist = false } = {}) {
@@ -4318,27 +4282,6 @@ class DpsApp {
       return localizedName || `Mob #${numericTargetId}`;
     }
     return cleanTargetName;
-  }
-
-  updateTargetModeButton() {
-    if (!this.targetModeBtn) return;
-    const isBossTargets = this.targetSelection === "bossTargets";
-    const isAllTargets = this.targetSelection === "allTargets";
-    const isTrainTargets = this.targetSelection === "trainTargets";
-    this.targetModeBtn.classList.toggle("isAllTargets", isAllTargets);
-    this.targetModeBtn.classList.toggle("isTrainTargets", isTrainTargets);
-    const modeKey = isBossTargets
-      ? "bossTargets"
-      : isAllTargets
-        ? "allTargets"
-        : isTrainTargets
-          ? "trainTargets"
-          : "lastHitByMe";
-    this.targetModeBtn.textContent = this.i18n?.t(`settings.defaultMeterMode.options.${modeKey}`, modeKey);
-    this.targetModeBtn.setAttribute(
-      "aria-label",
-      this.i18n?.t(`settings.defaultMeterMode.aria.${modeKey}`, modeKey)
-    );
   }
 
   refreshBossLabel() {

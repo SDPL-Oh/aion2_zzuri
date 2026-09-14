@@ -595,18 +595,6 @@
                 <div class="settingsGroupBody">
                   <div class="settingsRow settingsRowSelect">
                     <div class="settingsInfo">
-                      <div class="settingsLabel" data-i18n="settings.defaultMeterMode.label">Default mode</div>
-                    </div>
-                    <div class="settingsDropdownWrapper defaultMeterModeDropdownWrapper">
-                      <button class="settingsDropdownBtn defaultMeterModeDropdownBtn" type="button">
-                        <span class="settingsDropdownText">TARGET</span>
-                        <span class="settingsDropdownCaret" aria-hidden="true">▾</span>
-                      </button>
-                      <div class="settingsDropdownMenu defaultMeterModeDropdownMenu" role="menu"></div>
-                    </div>
-                  </div>
-                  <div class="settingsRow settingsRowSelect">
-                    <div class="settingsInfo">
                       <div class="settingsLabel" data-i18n="settings.playerLimit.label">Max players shown</div>
                     </div>
                     <div class="settingsDropdownWrapper playerLimitDropdownWrapper playerLimitNarrow">
@@ -621,6 +609,13 @@
                     <span class="settingsToggleLabel settingsLabel" data-i18n="settings.pinMeToTop">Always show me at the top</span>
                     <span class="settingsToggleControl">
                       <input type="checkbox" class="pinMeToTopCheckbox" />
+                      <span class="settingsToggleTrack" aria-hidden="true"></span>
+                    </span>
+                  </label>
+                  <label class="settingsToggle">
+                    <span class="settingsToggleLabel settingsLabel" data-i18n="settings.colorByJob">Color rows by job</span>
+                    <span class="settingsToggleControl">
+                      <input type="checkbox" class="colorByJobCheckbox" />
                       <span class="settingsToggleTrack" aria-hidden="true"></span>
                     </span>
                   </label>
@@ -820,12 +815,12 @@
         </div>
         <div class="meterColumnHeader" aria-hidden="true">
           <span class="colName">이름</span>
-          <span class="colCP">전투력</span>
           <div class="dps colDpsGroup">
             <span class="colTotal">총딜량</span>
             <span class="colDpsLabel">DPS</span>
             <span class="colContrib">기여도</span>
           </div>
+          <span class="colCompare">비교</span>
         </div>
         <div class="list"></div>
         <div class="meterFooter">
@@ -842,12 +837,6 @@
             <span class="meterTotalDmg"></span>
           </div>
           <div class="footerBtns">
-            <button
-              class="footerBtn targetModeBtn"
-              type="button"
-              aria-label="타겟 모드">
-              타겟
-            </button>
             <button
               class="footerBtn metricToggleBtn"
               type="button"

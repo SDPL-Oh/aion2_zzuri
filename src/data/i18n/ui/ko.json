@@ -126,6 +126,7 @@
     "characterName": "Name#ID",
     "characterNamePlaceholder": "캐릭터 이름 입력",
     "pinMeToTop": "내 캐릭터를 맨 위에 고정",
+    "colorByJob": "포지션별 색상 표시",
     "meterLayout": {
       "label": "미터 레이아웃",
       "beta": "베타 UI",
@@ -229,21 +230,6 @@
       "pressKeys": "키를 누르세요...",
       "needModifiers": "수정자 2개 이상 필요"
     },
-    "defaultMeterMode": {
-      "label": "기본 미터 모드",
-      "options": {
-        "lastHitByMe": "타겟",
-        "bossTargets": "보스",
-        "allTargets": "전체",
-        "trainTargets": "훈련"
-      },
-      "aria": {
-        "lastHitByMe": "타겟 모드",
-        "bossTargets": "보스 모드",
-        "allTargets": "전체 모드",
-        "trainTargets": "훈련 모드"
-      }
-    },
     "trainingMode": {
       "label": "훈련 모드",
       "options": {
@@ -260,7 +246,7 @@
   },
   "meter": {
     "identifyingPlayer": "#{id}",
-    "dpsSuffix": "/초"
+    "dpsSuffix": "/s"
   },
   "skills": {
     "fallback": "스킬 {code}",
