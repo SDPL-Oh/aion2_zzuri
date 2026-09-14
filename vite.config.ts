@@ -3,6 +3,17 @@ import { defineConfig } from "vite";
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
+// Browser development/preview uses the same official routes as the native command.
+const comparisonProxy = {
+  "^/comparison-api/(gameinfo/servers|search/character|character/info|character/equipment|character/equipment/item)(\\?|$)": {
+    target: "https://aion2.plaync.com",
+    changeOrigin: true,
+    timeout: 20000,
+    proxyTimeout: 20000,
+    rewrite: (path: string) => path.replace(/^\/comparison-api\//, "/api/"),
+  },
+};
+
 // https://vite.dev/config/
 export default defineConfig(async () => ({
 
@@ -14,6 +25,7 @@ export default defineConfig(async () => ({
   server: {
     port: 1420,
     strictPort: true,
+    proxy: comparisonProxy,
     host: host || false,
     hmr: host
       ? {
@@ -27,4 +39,5 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
+  preview: { proxy: comparisonProxy },
 }));

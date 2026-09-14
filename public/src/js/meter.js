@@ -1,8 +1,9 @@
-const createMeterUI = ({
+  const createMeterUI = ({
   elList,
   dpsFormatter,
   getUserName,
   onClickUserRow,
+  onCompareUserRow,
   onHoverUserRow,
   onLeaveUserRow,
   getMetric,
@@ -82,6 +83,19 @@ const createMeterUI = ({
     contentEl.appendChild(nameEl);
     contentEl.appendChild(combatPowerEl);
     contentEl.appendChild(dpsContainer);
+    const compareLink = document.createElement("a");
+    compareLink.className = "compareCharacterLink";
+    compareLink.href = "/compare.html";
+    compareLink.textContent = "비교";
+    compareLink.title = "내 캐릭터와 전투 성과·장비·스탯 비교";
+    compareLink.setAttribute("aria-label", "내 캐릭터와 비교");
+    compareLink.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      onCompareUserRow?.(view.currentRow);
+    });
+    compareLink.addEventListener("pointerdown", (event) => event.stopPropagation());
+    contentEl.appendChild(compareLink);
     rowEl.appendChild(fillTrackEl);
     rowEl.appendChild(contentEl);
 

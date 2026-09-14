@@ -6,6 +6,7 @@ pub mod history;
 pub mod i18n;
 pub mod logging;
 pub mod platform;
+mod comparison;
 
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -1631,6 +1632,8 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            comparison::open_comparison_window,
+            comparison::comparison_api,
             get_app_version,
             get_dps_snapshot,
             get_skill_details,

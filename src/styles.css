@@ -810,13 +810,12 @@ html:lang(zh-Hant), html:lang(zh-Hant) body {
 }
 
 /* --- 개인용 심플 모드: 불필요한 UI 진입점 제거 ---
-   전투 기록(History) 창, 후원(Support) 버튼/모달은 개인 사용에 필요 없어 숨김.
+   전투 기록(History) 창은 개인 사용에 필요 없어 숨김. 후원(Support) 관련
+   마크업/코드는 완전히 제거했으므로 여기서 숨길 필요가 없다.
    내부 코드는 그대로 두되(빌드 안정성을 위해), 화면에서 접근 경로만 없앤다. */
 .headerBtns .historyBtn,
-.supportButton,
 .discordButton,
 .a2toolsButton,
-#supportModal,
 .detailsPanel,
 .hoverDetailsTooltip,
 .detailsMonitorDropdownWrapper,
@@ -1950,10 +1949,9 @@ body.mainPlayerNamesBold .settingsPanel .themeDropdownMenu .settingsDropdownItem
   cursor: pointer;
 }
 
-/* One geometry for the three outbound links; only the fill tells them
+/* One geometry for the outbound links; only the fill tells them
    apart, and none of them is louder than the panel it sits in. */
 .settingsPanel .discordButton,
-.settingsPanel .supportButton,
 .settingsPanel .a2toolsButton,
 .settingsPanel .quitButton {
   height: 28px;
@@ -1976,21 +1974,16 @@ body.mainPlayerNamesBold .settingsPanel .themeDropdownMenu .settingsDropdownItem
 .settingsPanel .discordButton {
   background: #5865f2;
 }
-.settingsPanel .supportButton {
-  background: linear-gradient(90deg, #7f5fe8, #6f4cd8);
-}
 .settingsPanel .a2toolsButton {
   background: linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899, #6366f1);
   background-size: 300% 300%;
   animation: a2toolsShimmer 6s ease infinite;
 }
 .settingsPanel .discordButton:hover,
-.settingsPanel .supportButton:hover,
 .settingsPanel .a2toolsButton:hover {
   filter: brightness(1.12);
 }
-.settingsPanel .discordButton .discordIcon,
-.settingsPanel .supportButton .supportIcon {
+.settingsPanel .discordButton .discordIcon {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
@@ -2001,10 +1994,6 @@ body.mainPlayerNamesBold .settingsPanel .themeDropdownMenu .settingsDropdownItem
   width: 100%;
   height: 100%;
   fill: currentColor;
-}
-.settingsPanel .supportButton .supportIcon svg {
-  width: 100%;
-  height: 100%;
 }
 
 /* Quit is destructive, so it is outlined rather than filled — present,
@@ -4070,151 +4059,6 @@ body.mainPlayerNamesBold .settingsPanel .themeDropdownMenu .settingsDropdownItem
   text-align: center;
   font-size: 14px;
 }
-.supportModal {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  z-index: 8;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-}
-.supportModal.isOpen {
-  display: flex;
-}
-.supportModal .supportModalCard {
-  width: min(360px, 95vw);
-  border-radius: 18px;
-  background: rgb(12, 22, 40);
-  padding: 20px;
-  color: white;
-  position: relative;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
-.supportModal .supportModalTitle {
-  font-size: 18px;
-  font-weight: 700;
-  text-align: center;
-}
-.supportModal .supportModalClose {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  border: none;
-  background: rgba(255, 255, 255, 0.12);
-  color: white;
-  border-radius: 999px;
-  width: 28px;
-  height: 28px;
-  cursor: pointer;
-  font-size: 18px;
-  line-height: 1;
-}
-.supportModal .supportQrContainer {
-  background: white;
-  border-radius: 16px;
-  padding: 12px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
-}
-.supportModal .supportQrImage {
-  width: 220px;
-  height: 220px;
-  object-fit: contain;
-  border-radius: 12px;
-  background: white;
-}
-.supportModal .supportActions {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  width: 100%;
-}
-.supportModal .supportIconButton {
-  border: none;
-  background: rgba(255, 255, 255, 0.08);
-  color: white;
-  border-radius: 10px;
-  padding: 10px 8px;
-  cursor: pointer;
-  font-size: 17px;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: transform 0.15s ease, background 0.15s ease;
-}
-.supportModal .supportIconButton:hover {
-  transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.16);
-}
-.supportModal .supportIconButton.isActive {
-  background: rgba(143, 106, 243, 0.35);
-  box-shadow: 0 0 0 1px rgba(143, 106, 243, 0.45);
-}
-.supportModal .supportIcon {
-  width: 18px;
-  height: 18px;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-}
-.supportModal .supportIcon svg {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-.supportModal .supportLabel {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-.supportModal .supportIconButton[data-support="afdian"] {
-  background: linear-gradient(90deg, #7f5fe8, #6f4cd8);
-  color: #ffffff;
-}
-.supportModal .supportIconButton[data-support="wechat"] {
-  background: rgba(16, 187, 89, 0.2);
-  color: #8df0b6;
-}
-.supportModal .supportIconButton[data-support="paypal"] {
-  background: rgba(0, 112, 186, 0.2);
-  color: #8fc9ff;
-}
-.supportModal .supportIconButton[data-support="kofi"] {
-  background: linear-gradient(90deg, #7f5fe8, #6f4cd8);
-  color: #ffffff;
-}
-.supportModal .supportIconButton[data-support="btc"] {
-  background: rgba(247, 147, 26, 0.22);
-  color: #ffd0a1;
-}
-.supportModal .supportIconButton[data-support="eth"] {
-  background: rgba(98, 126, 234, 0.22);
-  color: #c2d2ff;
-}
-.supportModal .supportIconButton[data-support="usdc"] {
-  background: rgba(39, 117, 202, 0.22);
-  color: #bcd8ff;
-}
-.supportModal .supportCopyStatus {
-  min-height: 18px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.8);
-  text-align: center;
-}
-
-
 .windowDragFreeze {
   -webkit-user-select: none !important;
   user-select: none !important;
@@ -6809,3 +6653,18 @@ html.detailsWindow .meter,
 html.settingsWindow .meter {
   cursor: auto;
 }
+
+/* Explicit comparison link keeps the existing row/detail click behavior. */
+.list .item .compareCharacterLink {
+  flex: 0 0 auto;
+  color: #a8bcff;
+  font-size: 10px;
+  padding: 4px 5px;
+  border: 1px solid #849efb55;
+  border-radius: 4px;
+  text-decoration: none;
+  position: relative;
+  pointer-events: auto;
+}
+.list .item .compareCharacterLink:hover,
+.list .item .compareCharacterLink:focus-visible { background: #849efb33; outline: 1px solid #a8bcff; }

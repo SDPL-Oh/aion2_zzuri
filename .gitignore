@@ -46,3 +46,7 @@ settings.properties
 # Debug binaries
 /src-tauri/src/bin/
 .claude/
+
+# Authored standalone character comparison page.
+!/public/compare.html
+!/public/compare.css

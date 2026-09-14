@@ -6,6 +6,16 @@
 (function () {
   "use strict";
 
+  // Plain-browser preview (e.g. `npm run dev` opened in a regular browser tab,
+  // with no Tauri runtime injected): skip the bridge instead of throwing here.
+  // core.js's waitForBridgeAndStart() already force-starts the UI once
+  // window.javaBridge never shows up, so this only removes a startup crash —
+  // real Tauri windows always have window.__TAURI__ and are unaffected.
+  if (!window.__TAURI__) {
+    console.warn("[A2Tools] window.__TAURI__ missing — not running inside Tauri, skipping bridge setup.");
+    return;
+  }
+
   const { invoke } = window.__TAURI__.core;
   const { listen } = window.__TAURI__.event;
   const { open: shellOpen } = window.__TAURI__.opener;
