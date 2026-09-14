@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { delta, percentDelta, combatMetrics, normalizeCharacter, statRows, equipmentRows, itemOptions, decodeCharacterId, plainName } from '../public/src/js/comparisonModel.js';
+import { delta, percentDelta, combatMetrics, normalizeCharacter, statRows, equipmentRows, equipmentCategory, itemOptions, additionalOptions, decodeCharacterId, plainName } from '../public/src/js/comparisonModel.js';
 
 test('missing values are not zero and zero baselines have no percentage', () => {
   assert.equal(delta(null, 100), null); assert.equal(delta('', 100), null); assert.equal(delta(0, 100), 100);
@@ -38,9 +38,24 @@ test('equipment matches slot, preserving separate rings and missing sides', () =
   assert.equal(equipmentRows(a, null)[0].known, false);
   assert.equal(equipmentRows(a, normalizeCharacter(info, gear([])))[0].changed, true);
 });
+test('equipment categories separate accessories from weapons, armor, and wings', () => {
+  for (const slotPosName of ['Belt', 'Necklace', 'Earring1', 'Ring2', 'Bracelet1', 'Pendant', 'Brooch2', 'Amulet', 'Rune1', 'Seal2', 'Arcana10']) {
+    assert.equal(equipmentCategory({ slotPosName }), 'accessory');
+  }
+  for (const slotPosName of ['MainHand', 'Helmet', 'Torso', 'Wing']) assert.equal(equipmentCategory({ slotPosName }), 'gear');
+});
 test('item options preserve ranges, bonuses, duplicate stones and effect text', () => {
   const options = itemOptions({ mainStats: [{ id: 'WeaponFixingDamage', minValue: '100', value: '200', extra: '30' }], magicStoneStat: [{ id: 'STR', name: '위력', value: '+5' }, { id: 'STR', name: '위력', value: '+6' }], godStoneStat: [{ name: '신석', desc: '효과\n설명' }] });
   assert.equal(options[0].value, '100 ~ 200 (+30)'); assert.notEqual(options[1].key, options[2].key); assert.equal(options[3].value, '효과\n설명');
+});
+test('character normalization keeps acquired skill levels and additional options stay focused', () => {
+  const data = normalizeCharacter(info, { ...gear([]), skill: { skillList: [
+    { id: 1, name: '습득', acquired: 1, skillLevel: 7, icon: 'skill.png' },
+    { id: 2, name: '미습득', acquired: 0, skillLevel: 0 },
+  ] } });
+  assert.deepEqual(data.skills.map(skill => [skill.name, skill.skillLevel]), [['습득', 7]]);
+  const details = { mainStats: [{ id: 'STR', name: '기본', value: 1 }], subStats: [{ id: 'DEX', name: '민첩', value: 5 }], magicStoneStat: [{ name: '마석', value: 9 }], subSkills: [{ id: 3, name: '스킬 효과', desc: '피해 증가' }] };
+  assert.deepEqual(additionalOptions(details).map(option => [option.name, option.value]), [['민첩', '5'], ['스킬 효과', '피해 증가']]);
 });
 test('official encoded character IDs decode once and highlighted names are text', () => {
   assert.equal(decodeCharacterId('abc%3D'), 'abc='); assert.equal(plainName('<strong>캐릭터</strong>'), '캐릭터');
@@ -52,6 +67,15 @@ test('launcher passes selected actor and local ID without relying on rendered ro
   vm.runInNewContext(fs.readFileSync(new URL('../public/src/js/compareLauncher.js', import.meta.url), 'utf8'), { window });
   await window.openCharacterComparison({ buildRowsFromMapObject: map => { assert.deepEqual(Object.keys(map), ['1', '2']); return [{ id: '1', name: '나' }, { id: '2', name: '상대' }]; } }, { id: '2' });
   assert.equal(payload.meId, '1'); assert.equal(payload.otherId, '2'); assert.equal(payload.details.targetId, 99);
+});
+test('launcher keeps a configured local character selectable without a damage row', async () => {
+  let payload;
+  const raw = { map: { 2: {} }, targetId: 0, localPlayerId: null };
+  const window = { __TAURI__: { core: { invoke: async (_command, args) => { payload = args.payload; } } }, dpsData: { getDpsData: () => JSON.stringify(raw) }, alert: message => { throw new Error(message); } };
+  vm.runInNewContext(fs.readFileSync(new URL('../public/src/js/compareLauncher.js', import.meta.url), 'utf8'), { window });
+  await window.openCharacterComparison({ USER_NAME: '나의캐릭터', lastSnapshot: [], buildRowsFromMapObject: () => [{ id: '2', name: '상대' }] }, { id: '2' });
+  assert.equal(payload.meId, 'me:나의캐릭터');
+  assert.equal(payload.rows.find(row => row.id === payload.meId).name, '나의캐릭터');
 });
 
 test('browser reserves a blank tab so slow detail requests cannot lose snapshot navigation', async () => {

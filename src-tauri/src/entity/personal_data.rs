@@ -18,6 +18,12 @@ pub struct PersonalData {
     /// Combat power from the party roster packet, or 0 when this player isn't in
     /// your party (the roster is the only source, so non-party players have none).
     pub combat_power: i64,
+    /// Character and equipment levels from the party roster packet. Zero means
+    /// unknown, which is distinct from a real level value.
+    #[serde(default)]
+    pub character_level: i32,
+    #[serde(default)]
+    pub equipment_level: i32,
 }
 
 impl PersonalData {
@@ -30,6 +36,8 @@ impl PersonalData {
             analyzed_data: HashMap::new(),
             nickname,
             combat_power: 0,
+            character_level: 0,
+            equipment_level: 0,
         }
     }
 
@@ -42,6 +50,8 @@ impl PersonalData {
             analyzed_data: HashMap::new(),
             nickname,
             combat_power: 0,
+            character_level: 0,
+            equipment_level: 0,
         }
     }
 

@@ -6,7 +6,7 @@
 <p id="detailStatus">행 클릭: 0회</p>
 <script src="/src/js/compareLauncher.js"></script><script src="/src/js/meter.js"></script>
 <script>
-const sampleRows = [{id:'1',name:'검증 캐릭터 A',job:'검성',isUser:true,dps:100000,totalDamage:12000000,damageContribution:40,combatPower:500000},{id:'2',name:'검증 캐릭터 B',job:'검성',isUser:false,dps:150000,totalDamage:18000000,damageContribution:60,combatPower:600000}];
+const sampleRows = [{id:'1',name:'검증 캐릭터 A',job:'검성',isUser:true,dps:100000,totalDamage:12000000,damageContribution:40,characterLevel:55,equipmentLevel:2480,combatPower:500000},{id:'2',name:'검증 캐릭터 B',job:'검성',isUser:false,dps:150000,totalDamage:18000000,damageContribution:60,characterLevel:55,equipmentLevel:2610,combatPower:600000}];
 window.dpsData={getDpsData:()=>JSON.stringify({map:{1:{},2:{}},localPlayerId:1,targetId:77,targetName:'검증용 예시 전투 (실제 기록 아님)',battleTime:120000}),getTargetDetails:async()=>JSON.stringify({targetId:77,battleTime:120000,skills:[{actorId:1,dmg:12000000,time:100,crit:40,smite:20},{actorId:2,dmg:18000000,time:100,crit:55,smite:35}]})};
 const sampleApp={buildRowsFromMapObject:()=>sampleRows};
 let detailClicks=0;

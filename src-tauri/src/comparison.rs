@@ -25,7 +25,7 @@ pub async fn open_comparison_window(
         .min_inner_size(600.0, 500.0)
         .decorations(true)
         .resizable(true)
-        .background_color(tauri::window::Color(14, 18, 27, 255))
+        .background_color(tauri::window::Color(238, 247, 251, 255))
         .build().map_err(|e| e.to_string())?;
     Ok(())
 }

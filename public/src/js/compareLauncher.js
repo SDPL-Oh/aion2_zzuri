@@ -11,10 +11,23 @@
       if (!native && !tab) throw new Error('팝업이 차단되었습니다. 이 사이트의 팝업을 허용해 주세요.');
       const raw = window.dpsData?.getDpsData?.();
       const snapshot = typeof raw === 'string' ? JSON.parse(raw) : raw;
-      const rows = snapshot ? app.buildRowsFromMapObject(snapshot.map) : app.lastSnapshot || [];
+      const builtRows = snapshot ? app.buildRowsFromMapObject(snapshot.map) : [];
+      const rowsById = new Map(builtRows.map(candidate => [String(candidate.id), candidate]));
+      for (const candidate of app.lastSnapshot || []) {
+        if (!rowsById.has(String(candidate.id))) rowsById.set(String(candidate.id), candidate);
+      }
       const localId = snapshot?.localPlayerId ?? app.localPlayerId;
-      const me = rows.find(r => localId != null && String(r.id) === String(localId))
-        || rows.find(r => r.isUser);
+      const userName = String(app.USER_NAME || '').trim();
+      let rows = [...rowsById.values()];
+      let me = rows.find(r => localId != null && String(r.id) === String(localId))
+        || rows.find(r => r.isUser)
+        || rows.find(r => userName && r.name === userName);
+      // A player who did not deal damage can be absent from the combat map. Keep
+      // them selectable so their official profile can still be compared.
+      if (!me && (localId != null || userName)) {
+        me = { id: localId != null ? String(localId) : `me:${userName}`, name: userName || '내 캐릭터', job: '', dps: null, totalDamage: null, combatPower: 0, characterLevel: 0, equipmentLevel: 0, isUser: true, isIdentifying: !userName };
+        rows = [...rows, me];
+      }
       const targetId = snapshot?.targetId ?? app.lastTargetId;
       let details = null;
       if (Number(targetId) > 0) {

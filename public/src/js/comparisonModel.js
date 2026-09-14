@@ -33,7 +33,11 @@ export function normalizeCharacter(info, equipment) {
     items = equipment.equipment.equipmentList.map(item => ({ ...item, key: String(item.slotPos) }));
     if (equipment.petwing?.wing) items.push({ ...equipment.petwing.wing, key: 'wing', slotPosName: 'Wing' });
   }
-  return { profile: info.profile, stats, items, fetchedAt: new Date().toISOString() };
+  const skills = Array.isArray(equipment?.skill?.skillList)
+    ? equipment.skill.skillList.filter(skill => number(skill.acquired) === 1 && (number(skill.skillLevel) || 0) > 0)
+      .map(skill => ({ ...skill, key: String(skill.id) }))
+    : equipment == null ? null : [];
+  return { profile: info.profile, stats, items, skills, fetchedAt: new Date().toISOString() };
 }
 export function statRows(a, b) {
   const mine = new Map((a?.stats || []).map(s => [s.key, s]));
@@ -52,6 +56,10 @@ export function equipmentRows(a, b) {
     return { key, mine: x, other: y, known, changed: known && (!x || !y || ['id', 'enchantLevel', 'exceedLevel'].some(k => (x[k] ?? 0) !== (y[k] ?? 0))) };
   });
 }
+const accessorySlotPattern = /^(Belt|Necklace|Earring|Ring|Bracelet|Pendant|Brooch|Amulet|Rune|Seal|Arcana)/;
+export function equipmentCategory(item) {
+  return accessorySlotPattern.test(String(item?.slotPosName || '')) ? 'accessory' : 'gear';
+}
 const statLabels = { WeaponFixingDamage: '공격력' };
 export function itemOptions(item) {
   if (!item) return [];
@@ -66,6 +74,20 @@ export function itemOptions(item) {
     }
   }
   if (item.soulBindRate != null) result.push({ key: 'soulBindRate', name: '영혼 각인율', value: `${item.soulBindRate}%` });
+  return result;
+}
+export function additionalOptions(item) {
+  if (!item) return [];
+  const result = [];
+  for (const [group, values] of [['subStats', item.subStats], ['subSkills', item.subSkills]]) {
+    const counts = new Map();
+    for (const option of values || []) {
+      const id = option.id || option.name || 'option';
+      const occurrence = counts.get(id) || 0; counts.set(id, occurrence + 1);
+      const value = option.desc ?? `${option.minValue != null && String(option.minValue) !== String(option.value) ? `${option.minValue} ~ ` : ''}${option.value ?? option.level ?? '—'}`;
+      result.push({ key: `${group}:${id}:${occurrence}`, name: option.name || statLabels[id] || id, value });
+    }
+  }
   return result;
 }
 export function decodeCharacterId(id) {

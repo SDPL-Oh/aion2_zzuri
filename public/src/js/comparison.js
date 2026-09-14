@@ -1,4 +1,4 @@
-import { number, delta, percentDelta, combatMetrics, normalizeCharacter, statRows, equipmentRows, itemOptions, decodeCharacterId, plainName } from './comparisonModel.js';
+import { number, delta, percentDelta, combatMetrics, normalizeCharacter, statRows, equipmentRows, equipmentCategory, additionalOptions, decodeCharacterId, plainName } from './comparisonModel.js';
 const $ = id => document.getElementById(id);
 const el = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text != null) node.textContent = text; return node; };
 const fmt = (v, digits = 0) => number(v) === null ? '확인 불가' : Number(v).toLocaleString('ko-KR', { maximumFractionDigits: digits });
@@ -28,9 +28,12 @@ const sides = [
   { key: 'mine', title: '내 캐릭터', row: rows.find(r => String(r.id) === String(snapshot?.meId)), generation: 0 },
   { key: 'other', title: '비교 캐릭터', row: rows.find(r => String(r.id) === String(snapshot?.otherId)), generation: 0 },
 ];
+const displaySides = () => [sides[1], sides[0]];
 let servers = [];
 let onlyDifferences = false;
+let equipmentView = 'all';
 const optionCache = new Map();
+const optionErrors = new Map();
 const slotNames = { MainHand: '주무기', SubHand: '보조무기', Helmet: '머리', Shoulder: '어깨', Torso: '상의', Pants: '하의', Gloves: '장갑', Boots: '신발', Cape: '망토', Belt: '허리띠', Necklace: '목걸이', Earring1: '귀걸이 1', Earring2: '귀걸이 2', Ring1: '반지 1', Ring2: '반지 2', Bracelet1: '팔찌 1', Bracelet2: '팔찌 2', Wing: '날개', Pendant: '펜던트', Brooch1: '브로치 1', Brooch2: '브로치 2', Amulet: '아뮬렛', Rune1: '룬 1', Rune2: '룬 2', Seal1: '인장 1', Seal2: '인장 2', Arcana1: '아르카나 1', Arcana2: '아르카나 2', Arcana3: '아르카나 3', Arcana4: '아르카나 4', Arcana5: '아르카나 5', Arcana6: '아르카나 6', Arcana7: '아르카나 7', Arcana8: '아르카나 8', Arcana9: '아르카나 9', Arcana10: '아르카나 10' };
 
 function renderCombat() {
@@ -41,14 +44,18 @@ function renderCombat() {
     const label = el('label', side.key, side.title);
     const select = el('select'); select.setAttribute('aria-label', `${side.title} 전투 기록 선택`);
     const empty = el('option', '', rows.length ? '캐릭터 선택' : '전투 기록 없음'); empty.value = ''; select.append(empty);
-    for (const row of rows) { const option = el('option', '', `${row.name}${row.job ? ` · ${row.job}` : ''}`); option.value = row.id; select.append(option); }
+    for (const row of rows) { const option = el('option', '', `${row.name}${row.isUser ? ' · 나' : ''}${row.job ? ` · ${row.job}` : ''}`); option.value = row.id; select.append(option); }
     select.value = side.row?.id || '';
     select.addEventListener('change', () => {
       side.row = rows.find(r => String(r.id) === select.value); side.generation++; side.data = null;
       renderCombat(); buildProfile(side); renderSetup();
       if (side.server.value && side.name.value) search(side);
     });
-    label.append(select); actors.append(label);
+    const facts = el('div', 'combatActorFacts');
+    if (number(side.row?.characterLevel) > 0) facts.append(el('span', '', `Lv.${fmt(side.row.characterLevel)}`));
+    facts.append(el('span', '', `장비 Lv. ${number(side.row?.equipmentLevel) > 0 ? fmt(side.row.equipmentLevel) : '확인 불가'}`));
+    facts.append(el('strong', '', `전투력 ${number(side.row?.combatPower) > 0 ? fmt(side.row.combatPower) : '확인 불가'}`));
+    label.append(select, facts); actors.append(label);
   });
   const values = sides.map(s => combatMetrics(s.row, snapshot?.details));
   $('combatMetrics').replaceChildren();
@@ -79,16 +86,6 @@ function renderCombat() {
     }
     $('combatMetrics').append(row);
   }
-  const insight = $('combatInsight'); insight.replaceChildren(el('h3', '', '전투 지표 차이'));
-  const p = percentDelta(values[0].dps, values[1].dps);
-  let message = !sides[0].row || !sides[1].row ? '비교할 두 캐릭터의 전투 기록을 선택해 주세요.' : String(sides[0].row.id) === String(sides[1].row.id) ? '같은 캐릭터를 선택했습니다. 다른 캐릭터를 선택하면 차이를 확인할 수 있습니다.' : p === null ? 'DPS 증감률을 계산할 수 없습니다. 기록이 없거나 내 DPS가 0인 경우입니다.' : p === 0 ? '두 캐릭터의 DPS가 같습니다.' : `상대의 DPS가 내 캐릭터보다 ${fmt(Math.abs(p), 1)}% ${p > 0 ? '높습니다' : '낮습니다'}.`;
-  insight.append(el('strong', '', message));
-  for (const [key, title] of [['smite', '강타율'], ['crit', '치명타율']]) {
-    const difference = delta(values[0][key], values[1][key]);
-    insight.append(el('div', 'analysisDetail', difference === null ? `${title}: 비교할 타격 기록이 없습니다.` : difference === 0 ? `${title}은 두 캐릭터가 같습니다.` : `${title}은 상대가 ${fmt(Math.abs(difference), 1)}%p ${difference > 0 ? '높습니다' : '낮습니다'}.`));
-  }
-  if (sides.every(s => s.row?.job) && sides[0].row.job !== sides[1].row.job) insight.append(el('div', 'muted', '서로 다른 직업입니다. 역할과 스킬 구조를 함께 고려해 비교해 주세요.'));
-  if (!snapshot?.details?.skills?.length) insight.append(el('div', 'muted', '상세 타격 기록이 없어 강타율·치명타율은 확인할 수 없습니다. 전체 타겟 모드에서는 단일 보스를 선택한 뒤 비교해 주세요.'));
 }
 function setStatus(side, message, error = false) { side.status.replaceChildren(el('span', '', message)); side.status.classList.toggle('error', error); }
 function populateServers(side) {
@@ -146,66 +143,77 @@ async function loadCharacter(side, candidate, generation) {
     if (info.value.profile?.characterName !== plainName(candidate.name) || Number(info.value.profile?.serverId) !== Number(candidate.serverId)) throw new Error('검색한 캐릭터와 조회 결과가 일치하지 않습니다. 다시 조회해 주세요.');
     side.data = normalizeCharacter(info.value, gear.status === 'fulfilled' ? gear.value : null);
     side.data.params = params;
+    if (side.row) {
+      side.row.characterLevel = number(side.data.profile.characterLevel) || side.row.characterLevel || 0;
+      side.row.equipmentLevel = number(side.data.stats.find(stat => stat.key === 'ItemLevel')?.value) || side.row.equipmentLevel || 0;
+      side.row.combatPower = number(side.data.profile.combatPower) || side.row.combatPower || 0;
+      renderCombat();
+    }
     setStatus(side, gear.status === 'fulfilled' ? `${side.data.profile.characterName} · ${side.data.profile.serverName} · ${side.data.profile.className}` : '스탯 조회 완료 · 장비 조회 실패. ‘조회’를 눌러 다시 시도해 주세요.', gear.status !== 'fulfilled');
     const facts = el('div', 'profileFacts'); facts.append(el('span', '', `Lv.${side.data.profile.characterLevel}`), el('strong', '', `전투력 ${fmt(side.data.profile.combatPower)}`));
     const link = el('a', '', '공식 프로필 ↗'); link.href = `https://aion2.plaync.com/ko-kr/characters/${Number(candidate.serverId)}/${encodeURIComponent(params.characterId)}`; link.target = '_blank'; link.rel = 'noopener noreferrer'; facts.append(link);
     side.facts.replaceChildren(facts, el('div', 'timestamp', `${clock(side.data.fetchedAt)} 조회 · 전투 당시 세팅과 다를 수 있음`));
     renderSetup();
+    prefetchAdditionalOptions(side, generation);
   } catch (error) { if (generation === side.generation) { side.data = null; setStatus(side, String(error.message || error), true); renderSetup(); } }
   finally { if (generation === side.generation) side.button.disabled = false; }
 }
 function table(headers) {
   const wrap = el('div', 'tableWrap'), t = el('table'), head = el('thead'), tr = el('tr'), body = el('tbody');
-  headers.forEach((text, i) => { const th = el('th', i === 1 ? 'mine' : i === 2 ? 'other' : '', text); th.scope = 'col'; tr.append(th); });
+  headers.forEach((text, i) => { const th = el('th', i === 1 ? 'other' : i === 2 ? 'mine' : '', text); th.scope = 'col'; tr.append(th); });
   head.append(tr); t.append(head, body); wrap.append(t); return { wrap, body };
 }
 function renderSetup() {
   const [a, b] = sides.map(s => s.data);
   const stats = statRows(a, b), equipment = equipmentRows(a, b);
-  const changedStats = stats.filter(s => s.difference !== null && s.difference !== 0);
-  const changedGear = equipment.filter(s => s.changed);
-  $('setupInsight').replaceChildren(el('h3', '', '장비·스탯 차이'));
-  $('setupInsight').append(el('div', '', a && b ? `수치가 다른 스탯 ${changedStats.length}개 · 기본 구성이 다른 장비 ${changedGear.length}부위${a.items && b.items ? '' : ' (장비 일부 미조회)'}. 장비의 ‘옵션 비교’를 열어 추가 옵션과 마석·신석을 확인하세요.` : '03 장비 & 스탯에서 두 캐릭터를 조회하면 세팅 차이를 분석합니다.'));
-  if (a && b) {
-    const highlights = changedStats.filter(s => !['CombatPower', 'ItemLevel'].includes(s.key))
-      .sort((x, y) => Math.abs(percentDelta(y.mine?.value, y.other?.value) ?? 0) - Math.abs(percentDelta(x.mine?.value, x.other?.value) ?? 0)).slice(0, 3);
-    if (highlights.length) $('setupInsight').append(el('div', 'analysisDetail', `주요 스탯 차이 (상대 − 나): ${highlights.map(s => `${s.name} ${signed(s.difference)}`).join(' · ')}`));
-    const link = el('a', 'analysisLink', '장비·스탯 상세 확인 ↓'); link.href = '#setupTitle'; $('setupInsight').append(link);
-  }
   $('statsTable').replaceChildren();
   if (!stats.length) $('statsTable').append(el('div', 'empty', '캐릭터를 조회하면 스탯 수치와 적용 효과가 표시됩니다.'));
   else {
-    const { wrap, body } = table(['스탯', '내 캐릭터', '비교 캐릭터', '상대 − 나']);
+    const { wrap, body } = table(['스탯', '비교 캐릭터', '내 캐릭터', '상대 − 나']);
     for (const s of stats.filter(s => !onlyDifferences || s.difference !== 0 || JSON.stringify(s.mine?.effects) !== JSON.stringify(s.other?.effects))) {
       const tr = el('tr', s.difference ? 'statChanged' : ''); tr.append(el('td', '', s.name));
-      for (const [i, value] of [s.mine, s.other].entries()) { const td = el('td'); td.append(el('div', `value ${sides[i].key}`, fmt(value?.value))); for (const effect of value?.effects || []) td.append(el('div', 'effect', effect)); tr.append(td); }
+      for (const [side, value] of [[sides[1], s.other], [sides[0], s.mine]]) { const td = el('td'); td.append(el('div', `value ${side.key}`, fmt(value?.value))); for (const effect of value?.effects || []) td.append(el('div', 'effect', effect)); tr.append(td); }
       tr.append(el('td', s.difference ? 'difference' : 'same', s.difference === 0 ? '동일' : signed(s.difference))); body.append(tr);
     }
     $('statsTable').append(body.children.length ? wrap : el('div', 'empty', '조회된 스탯과 적용 효과가 같습니다.'));
   }
   renderEquipment(equipment);
+  renderSkills(a, b);
 }
 function cacheKey(side, item) { return `${side.data?.params?.serverId}:${side.data?.params?.characterId}:${side.data?.fetchedAt}:${item.key}`; }
 function optionsEqual(row) {
   if (!row.mine || !row.other) return false;
   const x = optionCache.get(cacheKey(sides[0], row.mine)), y = optionCache.get(cacheKey(sides[1], row.other));
-  return x && y && JSON.stringify(itemOptions(x)) === JSON.stringify(itemOptions(y));
+  return x && y && JSON.stringify(additionalOptions(x)) === JSON.stringify(additionalOptions(y));
 }
 function renderEquipment(equipment) {
   const root = $('equipmentTable'); root.replaceChildren();
   if (!equipment.length) { root.append(el('div', 'empty', '캐릭터를 조회하면 부위별 장비와 강화·돌파 차이가 표시됩니다.')); return; }
   const list = el('div', 'equipmentList'); const head = el('div', 'equipmentRow equipmentHeading');
-  ['부위', '내 캐릭터', '비교 캐릭터', '차이 / 상세'].forEach((t, i) => head.append(el('span', i === 1 ? 'mine' : i === 2 ? 'other' : '', t))); list.append(head);
+  ['부위', '비교 캐릭터', '내 캐릭터', '차이'].forEach((t, i) => head.append(el('span', i === 1 ? 'other' : i === 2 ? 'mine' : '', t))); list.append(head);
   let count = 0;
   for (const row of equipment) {
+    const category = equipmentCategory(row.mine || row.other);
+    if (equipmentView !== 'all' && category !== equipmentView) continue;
     if (onlyDifferences && !row.changed && row.known && optionsEqual(row)) continue;
     count++;
     const group = el('div'), line = el('div', 'equipmentRow');
     const slot = row.mine?.slotPosName || row.other?.slotPosName;
     line.append(el('div', 'slot', slotNames[slot] || slot || `부위 ${row.key}`));
-    [row.mine, row.other].forEach((item, i) => {
-      const cell = el('div'); cell.append(el('div', `itemName ${sides[i].key}`, item?.name || (Array.isArray(sides[i].data?.items) ? '장착 정보 없음' : '미조회')));
-      if (item) cell.append(el('div', 'enhance', `강화 ${item.enchantLevel == null ? '미제공' : `+${item.enchantLevel}`} · 돌파 ${item.exceedLevel == null ? '미제공' : item.exceedLevel}`)); line.append(cell);
+    [[sides[1], row.other], [sides[0], row.mine]].forEach(([side, item]) => {
+      const cell = el('div', 'equipmentCell');
+      const title = el('div', 'itemTitle');
+      title.append(el('span', `itemName ${side.key}`, item?.name || (Array.isArray(side.data?.items) ? '장착 정보 없음' : '미조회')));
+      if (item) {
+        title.append(el('span', 'enchantBadge', item.enchantLevel == null ? '+?' : `+${item.enchantLevel}`));
+        const breakthrough = el('span', 'breakthroughBadge', item.exceedLevel == null ? '?' : String(item.exceedLevel));
+        breakthrough.title = `돌파 ${item.exceedLevel == null ? '미제공' : item.exceedLevel}`;
+        breakthrough.setAttribute('aria-label', breakthrough.title);
+        title.append(breakthrough);
+      }
+      cell.append(title);
+      if (item) cell.append(renderAdditionalOptions(side, item));
+      line.append(cell);
     });
     const summary = el('div', 'itemDelta');
     let text = !row.known ? '상대 정보 대기' : !row.mine || !row.other ? '장착 정보 차이' : row.mine.id !== row.other.id ? '장비 다름' : '같은 장비';
@@ -214,41 +222,73 @@ function renderEquipment(equipment) {
       const enchant = delta(row.mine.enchantLevel, row.other.enchantLevel), exceed = delta(row.mine.exceedLevel, row.other.exceedLevel);
       if (enchant) summary.append(el('div', 'difference', `강화 ${signed(enchant)}`)); if (exceed) summary.append(el('div', 'difference', `돌파 ${signed(exceed)}`));
     }
-    const panel = el('div', 'optionPanel'); panel.hidden = true;
-    const button = el('button', 'optionsButton', optionsEqual(row) ? '옵션 동일 · 보기' : '옵션 비교'); button.setAttribute('aria-expanded', 'false');
-    button.addEventListener('click', () => { panel.hidden = !panel.hidden; button.setAttribute('aria-expanded', String(!panel.hidden)); if (!panel.hidden) showOptions(row, panel, button); });
-    summary.append(button); line.append(summary); group.append(line, panel); list.append(group);
+    line.append(summary); group.append(line); list.append(group);
   }
-  root.append(count ? list : el('div', 'empty', '조회한 장비 구성과 상세 옵션이 모두 같습니다.'));
+  const emptyText = equipmentView === 'accessory' ? '표시할 장신구가 없습니다.' : equipmentView === 'gear' ? '표시할 무기·방어구가 없습니다.' : '조회한 장비 구성과 추가 옵션이 모두 같습니다.';
+  root.append(count ? list : el('div', 'empty', emptyText));
 }
-async function showOptions(row, panel, button) {
-  const generations = sides.map(s => s.generation);
-  panel.replaceChildren(el('p', 'optionNote', '부위별 상세 옵션을 불러오고 있습니다…')); button.disabled = true;
+function renderAdditionalOptions(side, item) {
+  const root = el('div', 'additionalOptions');
+  if (item.slotPos == null) { root.append(el('span', 'optionNote', '추가 옵션 미제공')); return root; }
+  const key = cacheKey(side, item), data = optionCache.get(key);
+  if (!data) { root.append(el('span', optionErrors.has(key) ? 'optionError' : 'optionNote', optionErrors.get(key) || '추가 옵션 불러오는 중…')); return root; }
+  const options = additionalOptions(data);
+  if (!options.length) { root.append(el('span', 'optionNote', '추가 옵션 없음')); return root; }
+  for (const option of options) root.append(el('span', 'additionalOption', `${option.name} ${option.value}`));
+  return root;
+}
+async function fetchItemDetails(side, item) {
+  const key = cacheKey(side, item);
+  if (optionCache.has(key)) return optionCache.get(key);
+  const params = { ...side.data.params, id: item.id, enchantLevel: item.enchantLevel || 0, slotPos: item.slotPos }; delete params.lang;
   try {
-    const results = await Promise.allSettled([row.mine, row.other].map(async (item, i) => {
-      if (!item || !sides[i].data) return null;
-      if (item.slotPos == null) throw new Error('이 부위는 상세 옵션 조회가 제공되지 않습니다.');
-      const side = sides[i], key = cacheKey(side, item);
-      if (optionCache.has(key)) return optionCache.get(key);
-      const params = { ...side.data.params, id: item.id, enchantLevel: item.enchantLevel || 0, slotPos: item.slotPos }; delete params.lang;
-      const data = await api('item', params);
-      if (!Array.isArray(data.mainStats) && !Array.isArray(data.subStats)) throw new Error('상세 옵션을 읽을 수 없습니다.');
-      optionCache.set(key, data); return data;
-    }));
-    if (generations.some((v, i) => v !== sides[i].generation) || !panel.isConnected) return;
-    panel.replaceChildren();
-    results.forEach((result, i) => { if (result.status === 'rejected') panel.append(el('p', 'optionNote', `${sides[i].title}: ${result.reason.message || result.reason} 닫았다 다시 열면 재시도합니다.`)); });
-    const opts = results.map(r => r.status === 'fulfilled' && r.value ? new Map(itemOptions(r.value).map(s => [s.key, s])) : null);
-    const keys = [...new Set([...(opts[0]?.keys() || []), ...(opts[1]?.keys() || [])])];
-    const { wrap, body } = table(['옵션', '내 캐릭터', '비교 캐릭터', '차이']);
-    for (const key of keys) {
-      const x = opts[0]?.get(key), y = opts[1]?.get(key); const same = !!x && !!y && x.value === y.value;
-      if (onlyDifferences && same) continue;
-      const tr = el('tr'); tr.append(el('td', '', x?.name || y?.name), el('td', 'mine', x?.value || (opts[0] ? '해당 옵션 없음' : '확인 불가')), el('td', 'other', y?.value || (opts[1] ? '해당 옵션 없음' : '확인 불가')), el('td', same ? 'same' : 'difference', !opts[0] || !opts[1] ? '비교 불가' : same ? '동일' : '다름')); body.append(tr);
+    const data = await api('item', params);
+    if (!data || typeof data !== 'object' || (!Array.isArray(data.mainStats) && !Array.isArray(data.subStats) && !Array.isArray(data.subSkills))) throw new Error('추가 옵션을 읽을 수 없습니다.');
+    optionCache.set(key, data); optionErrors.delete(key); return data;
+  } catch (error) {
+    optionErrors.set(key, `추가 옵션 확인 불가`); throw error;
+  }
+}
+async function prefetchAdditionalOptions(side, generation) {
+  const queue = (side.data?.items || []).filter(item => item.slotPos != null);
+  const workers = Array.from({ length: Math.min(4, queue.length) }, async () => {
+    while (queue.length && generation === side.generation) {
+      const item = queue.shift();
+      try { await fetchItemDetails(side, item); } catch { /* each item shows its own failure */ }
     }
-    panel.append(body.children.length ? wrap : el('p', 'optionNote', keys.length ? '조회된 상세 옵션이 같습니다.' : '표시할 상세 옵션이 없습니다.'));
-    if (optionsEqual(row)) button.textContent = '옵션 동일 · 보기';
-  } finally { button.disabled = false; }
+  });
+  await Promise.all(workers);
+  if (generation === side.generation) renderSetup();
+}
+const skillCategoryNames = { Active: '액티브', Passive: '패시브', Stigma: '스티그마', Dp: 'DP' };
+function renderSkills(a, b) {
+  const root = $('skillsTable'); root.replaceChildren();
+  const mine = new Map((a?.skills || []).map(skill => [skill.key, skill]));
+  const other = new Map((b?.skills || []).map(skill => [skill.key, skill]));
+  const rows = [...new Set([...mine.keys(), ...other.keys()])].map(key => {
+    const x = mine.get(key), y = other.get(key);
+    return { key, mine: x, other: y, skill: x || y, difference: delta(x?.skillLevel, y?.skillLevel), changed: !x || !y || number(x.skillLevel) !== number(y.skillLevel) };
+  }).sort((x, y) => String(x.skill.category).localeCompare(String(y.skill.category), 'ko') || String(x.skill.name).localeCompare(String(y.skill.name), 'ko'));
+  if (!rows.length) { root.append(el('div', 'empty', a || b ? '표시할 습득 스킬이 없습니다.' : '캐릭터를 조회하면 스킬 이미지와 레벨이 표시됩니다.')); return; }
+  const { wrap, body } = table(['스킬', '비교 캐릭터', '내 캐릭터', '상대 − 나']);
+  for (const row of rows.filter(row => !onlyDifferences || row.changed)) {
+    const tr = el('tr', row.changed ? 'statChanged' : '');
+    const identity = el('td'); const skill = el('div', 'skillIdentity');
+    const icon = el('img', 'comparisonSkillIcon'); icon.alt = ''; icon.loading = 'lazy';
+    if (String(row.skill.icon || '').startsWith('https://assets.playnccdn.com/')) icon.src = row.skill.icon;
+    else window.skillIcons?.applyIconToImage?.(icon, { code: row.skill.id, job: a?.profile?.className || b?.profile?.className });
+    icon.addEventListener('error', () => window.skillIcons?.applyIconToImage?.(icon, { code: row.skill.id, job: a?.profile?.className || b?.profile?.className }));
+    const text = el('div'); text.append(el('strong', '', row.skill.name), el('span', 'skillCategory', skillCategoryNames[row.skill.category] || row.skill.category || '스킬'));
+    skill.append(icon, text); identity.append(skill); tr.append(identity);
+    for (const [side, value] of [[sides[1], row.other], [sides[0], row.mine]]) {
+      const td = el('td', side.key); td.append(el('strong', 'skillLevel', value ? `Lv. ${fmt(value.skillLevel)}` : '미습득'));
+      if (value?.category === 'Stigma') td.append(el('div', 'skillEquipped', number(value.equip) === 1 ? '장착' : '미장착'));
+      tr.append(td);
+    }
+    const difference = !row.mine || !row.other ? '습득 차이' : row.difference === 0 ? '동일' : signed(row.difference);
+    tr.append(el('td', row.changed ? 'difference' : 'same', difference)); body.append(tr);
+  }
+  root.append(body.children.length ? wrap : el('div', 'empty', '조회된 스킬 레벨이 같습니다.'));
 }
 async function loadServers() {
   try {
@@ -260,9 +300,17 @@ async function loadServers() {
   }
 }
 $('differencesOnly').addEventListener('change', event => { onlyDifferences = event.target.checked; renderSetup(); });
+document.querySelectorAll('[data-equipment-view]').forEach(button => button.addEventListener('click', () => {
+  equipmentView = button.dataset.equipmentView;
+  document.querySelectorAll('[data-equipment-view]').forEach(candidate => {
+    const active = candidate.dataset.equipmentView === equipmentView;
+    candidate.classList.toggle('active', active); candidate.setAttribute('aria-pressed', String(active));
+  });
+  renderSetup();
+}));
 // External navigation uses the system browser in Tauri and an ordinary link on the web.
 document.addEventListener('click', event => {
   const link = event.target.closest('a[href^="https://aion2.plaync.com/"]');
   if (link && window.__TAURI__?.opener?.openUrl) { event.preventDefault(); window.__TAURI__.opener.openUrl(link.href).catch(error => window.alert(String(error))); }
 });
-renderCombat(); sides.forEach(buildProfile); renderSetup(); loadServers();
+renderCombat(); displaySides().forEach(buildProfile); renderSetup(); loadServers();
