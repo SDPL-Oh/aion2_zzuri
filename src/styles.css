@@ -1691,6 +1691,11 @@ body.mainPlayerNamesBold .settingsPanel .themeDropdownMenu .settingsDropdownItem
   background: rgba(255, 255, 255, 0.1);
 }
 
+.settingsPanel .keybindControls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .settingsPanel .keybindBtn {
   flex: 0 0 auto;
   justify-content: center;
@@ -1700,6 +1705,11 @@ body.mainPlayerNamesBold .settingsPanel .themeDropdownMenu .settingsDropdownItem
   font-variant-numeric: tabular-nums;
   font-size: 11.5px;
   letter-spacing: 0.06em;
+}
+.settingsPanel .keybindSaveBtn {
+  flex: 0 0 auto;
+  color: var(--isUser-fill);
+  border-color: var(--isUser-fill);
 }
 .settingsPanel .keybindBtn .keybindText {
   pointer-events: none;

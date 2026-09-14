@@ -3051,6 +3051,21 @@ class DpsApp {
 
     const reloadBtn = document.querySelector(".reloadKeybindBtn");
     const toggleBtn = document.querySelector(".toggleKeybindBtn");
+    const reloadSaveBtn = document.querySelector(".reloadKeybindSaveBtn");
+    const toggleSaveBtn = document.querySelector(".toggleKeybindSaveBtn");
+    const saveBtnByType = { reload: reloadSaveBtn, toggle: toggleSaveBtn };
+    // A captured-but-unsaved binding per row: { mods, vk }. Recording only
+    // updates this and the button text — window.javaBridge.setHotkey/
+    // setToggleWindowHotkey (the actual Win32 re-registration) only fires
+    // when the row's Save button is clicked, so a combo you don't mean to
+    // keep can't overwrite the real shortcut by accident.
+    const pendingByType = { reload: null, toggle: null };
+
+    const hidePending = (type) => {
+      pendingByType[type] = null;
+      const saveBtn = saveBtnByType[type];
+      if (saveBtn) saveBtn.style.display = "none";
+    };
 
     this.refreshKeybindLabels = () => {
       const reloadLabel = window.javaBridge?.getCurrentHotKey?.() || "";
@@ -3061,6 +3076,8 @@ class DpsApp {
       if (toggleBtn) {
         toggleBtn.querySelector(".keybindText").textContent = toggleLabel || "Ctrl+Alt+Up";
       }
+      hidePending("reload");
+      hidePending("toggle");
     };
     this.refreshKeybindLabels();
 
@@ -3074,6 +3091,7 @@ class DpsApp {
 
     const startRecording = (btn, type) => {
       stopRecording();
+      hidePending(type);
       btn.classList.add("recording");
       btn.querySelector(".keybindText").textContent =
         this.i18n?.t?.("settings.keybind.pressKeys", "Press keys...") ?? "Press keys...";
@@ -3091,6 +3109,19 @@ class DpsApp {
 
     reloadBtn?.addEventListener("click", () => handleKeybindClick(reloadBtn, "reload"));
     toggleBtn?.addEventListener("click", () => handleKeybindClick(toggleBtn, "toggle"));
+
+    reloadSaveBtn?.addEventListener("click", () => {
+      const pending = pendingByType.reload;
+      if (!pending) return;
+      window.javaBridge?.setHotkey?.(pending.mods, pending.vk);
+      hidePending("reload");
+    });
+    toggleSaveBtn?.addEventListener("click", () => {
+      const pending = pendingByType.toggle;
+      if (!pending) return;
+      window.javaBridge?.setToggleWindowHotkey?.(pending.mods, pending.vk);
+      hidePending("toggle");
+    });
 
     document.addEventListener("keydown", (event) => {
       if (!activeRecording) return;
@@ -3139,17 +3170,16 @@ class DpsApp {
 
       const vk = event.keyCode;
       const label = formatBinding(mods, vk);
-      const { type } = activeRecording;
+      const { type, btn } = activeRecording;
 
       stopRecording();
 
-      if (type === "reload") {
-        window.javaBridge?.setHotkey?.(mods, vk);
-        if (reloadBtn) reloadBtn.querySelector(".keybindText").textContent = label;
-      } else if (type === "toggle") {
-        window.javaBridge?.setToggleWindowHotkey?.(mods, vk);
-        if (toggleBtn) toggleBtn.querySelector(".keybindText").textContent = label;
-      }
+      // Captured, not yet saved — the row shows the new combo plus a Save
+      // button; window.javaBridge isn't touched until that's clicked.
+      pendingByType[type] = { mods, vk };
+      btn.querySelector(".keybindText").textContent = label;
+      const saveBtn = saveBtnByType[type];
+      if (saveBtn) saveBtn.style.display = "";
     }, true);
 
     document.addEventListener("click", (event) => {

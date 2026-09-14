@@ -664,17 +664,35 @@
                   <div class="settingsInfo">
                     <div class="settingsLabel" data-i18n="settings.keybind.reload">Reload data</div>
                   </div>
-                  <button class="keybindBtn reloadKeybindBtn" type="button" data-keybind="reload">
-                    <span class="keybindText">Ctrl+Alt+R</span>
-                  </button>
+                  <div class="keybindControls">
+                    <button class="keybindBtn reloadKeybindBtn" type="button" data-keybind="reload">
+                      <span class="keybindText">Ctrl+Alt+R</span>
+                    </button>
+                    <button
+                      class="settingsAction keybindSaveBtn reloadKeybindSaveBtn"
+                      type="button"
+                      data-i18n="settings.keybind.save"
+                      style="display:none">
+                      Save
+                    </button>
+                  </div>
                 </div>
                 <div class="settingsRow settingsRowKeybind">
                   <div class="settingsInfo">
                     <div class="settingsLabel" data-i18n="settings.keybind.toggle">Show/Hide window</div>
                   </div>
-                  <button class="keybindBtn toggleKeybindBtn" type="button" data-keybind="toggle">
-                    <span class="keybindText">Ctrl+Alt+Up</span>
-                  </button>
+                  <div class="keybindControls">
+                    <button class="keybindBtn toggleKeybindBtn" type="button" data-keybind="toggle">
+                      <span class="keybindText">Ctrl+Alt+Up</span>
+                    </button>
+                    <button
+                      class="settingsAction keybindSaveBtn toggleKeybindSaveBtn"
+                      type="button"
+                      data-i18n="settings.keybind.save"
+                      style="display:none">
+                      Save
+                    </button>
+                  </div>
                 </div>
               </div>
             </section>

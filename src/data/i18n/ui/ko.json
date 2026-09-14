@@ -228,7 +228,9 @@
       "reload": "데이터 새로고침",
       "toggle": "창 표시/숨기기",
       "pressKeys": "키를 누르세요...",
-      "needModifiers": "수정자 2개 이상 필요"
+      "needModifiers": "수정자 2개 이상 필요",
+      "save": "저장",
+      "saved": "저장됨"
     },
     "trainingMode": {
       "label": "훈련 모드",
