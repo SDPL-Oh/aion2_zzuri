@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>캐릭터 비교 · Zzuring</title>
+  <link rel="stylesheet" href="/compare.css">
+</head>
+<body>
+  <main>
+    <header class="pageHeader">
+      <div class="eyebrow">Zzuring <span>/ CHARACTER COMPARE</span></div>
+      <a class="official" href="https://aion2.plaync.com/ko-kr/characters" target="_blank" rel="noopener noreferrer">공식 캐릭터 정보실 ↗</a>
+    </header>
+    <section class="section combat" aria-labelledby="combatTitle">
+      <div class="sectionHead"><div><span class="step">01</span><h2 id="combatTitle">전투 성과</h2></div><span class="tag">동일 전투 기준</span></div>
+      <div id="fightContext" class="muted"></div>
+      <div class="combatComparisonBox">
+        <div id="combatActors" class="combatActors"></div>
+        <div id="combatMetrics" class="metrics" aria-label="상대와 내 캐릭터의 전투 성과 막대그래프"></div>
+      </div>
+      <p class="footnote">강타율·치명타율은 지속 피해(DOT)를 제외한 직접 타격 기준입니다. 차이는 ‘상대 − 내 캐릭터’이며, 비율 지표는 %p로 표시합니다.</p>
+    </section>
+    <section class="section analysis" aria-labelledby="analysisTitle">
+      <div class="sectionHead"><div><span class="step">02</span><h2 id="analysisTitle">차이 분석</h2></div><span class="tag">전투 기록과 세팅 차이 요약</span></div>
+      <div class="analysisGrid">
+        <div id="combatInsight" class="insight" role="status"></div>
+        <div id="setupInsight" class="insight secondary" role="status">두 캐릭터를 조회하면 차이가 있는 장비와 스탯을 요약합니다.</div>
+      </div>
+      <p class="footnote">아래 장비·스탯을 조회하면 분석에 반영됩니다. 현재 세팅의 차이가 전투 당시 DPS 차이의 원인과 일치하는 것은 아닙니다.</p>
+    </section>
+    <section class="section" aria-labelledby="setupTitle">
+      <div class="sectionHead"><div><span class="step">03</span><h2 id="setupTitle">장비 & 스탯</h2></div><span class="tag">공식 정보실 · 조회 시점 기준</span></div>
+      <p class="muted">서버를 확인하면 캐릭터의 현재 정보를 불러옵니다. 장비가 바뀌었다면 전투 당시 세팅과 다를 수 있습니다.</p>
+      <div id="profiles" class="profiles"></div>
+      <div class="toolbar"><nav aria-label="비교 항목"><a href="#statsSection">스탯 비교</a><a href="#equipmentSection">장비 비교</a></nav><label class="filter"><input id="differencesOnly" type="checkbox"> 차이 있는 항목만</label></div>
+      <section id="statsSection"><div class="subhead"><h3>스탯 비교</h3><span class="muted">수치와 적용 효과</span></div><div id="statsTable"></div></section>
+      <section id="equipmentSection"><div class="subhead"><h3>부위별 장비 비교</h3><span class="muted">강화 · 돌파 · 상세 옵션</span></div><div id="equipmentTable"></div></section>
+    </section>
+    <footer>전투 성과에는 장비 외에도 스킬 운용, 버프, 전투 참여 시간과 직업 차이가 영향을 줍니다. 표시된 차이만으로 DPS 차이의 원인을 단정할 수 없습니다.</footer>
+  </main>
+  <script type="module" src="/src/js/comparison.js"></script>
+</body>
+</html>

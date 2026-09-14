@@ -1,0 +1,15 @@
+<!doctype html><html lang="ko"><meta charset="utf-8"><title>비교 링크 검증 · 예시 데이터</title>
+<link rel="stylesheet" href="/src/styles.css">
+<body style="background:#141b27;color:white;padding:20px;overflow:auto;width:600px;height:auto">
+<h1 style="font-size:20px">비교 링크 검증 · 예시 데이터</h1><p>아래 수치는 동작 확인용 예시이며 실제 전투 기록이 아닙니다.</p>
+<div class="meter" style="width:540px"><div id="testList" class="list"></div></div>
+<p id="detailStatus">행 클릭: 0회</p>
+<script src="/src/js/compareLauncher.js"></script><script src="/src/js/meter.js"></script>
+<script>
+const sampleRows = [{id:'1',name:'검증 캐릭터 A',job:'검성',isUser:true,dps:100000,totalDamage:12000000,damageContribution:40,combatPower:500000},{id:'2',name:'검증 캐릭터 B',job:'검성',isUser:false,dps:150000,totalDamage:18000000,damageContribution:60,combatPower:600000}];
+window.dpsData={getDpsData:()=>JSON.stringify({map:{1:{},2:{}},localPlayerId:1,targetId:77,targetName:'검증용 예시 전투 (실제 기록 아님)',battleTime:120000}),getTargetDetails:async()=>JSON.stringify({targetId:77,battleTime:120000,skills:[{actorId:1,dmg:12000000,time:100,crit:40,smite:20},{actorId:2,dmg:18000000,time:100,crit:55,smite:35}]})};
+const sampleApp={buildRowsFromMapObject:()=>sampleRows};
+let detailClicks=0;
+const meter=createMeterUI({elList:document.getElementById('testList'),dpsFormatter:new Intl.NumberFormat('ko-KR'),getUserName:()=>sampleRows[0].name,getMetric:r=>({value:r.dps,text:new Intl.NumberFormat('ko-KR').format(r.dps)}),getSortDirection:()=> 'desc',getPinUserToTop:()=>false,getPlayerLimit:()=>6,onClickUserRow:()=>document.getElementById('detailStatus').textContent=`행 클릭: ${++detailClicks}회`,onCompareUserRow:r=>window.openCharacterComparison(sampleApp,r)});
+meter.updateFromRows(sampleRows);
+</script></body></html>
