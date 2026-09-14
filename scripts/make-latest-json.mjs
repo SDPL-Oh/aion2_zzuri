@@ -15,11 +15,17 @@ const tauriConf = JSON.parse(
 const version = tauriConf.version;
 
 const msiDir = path.join(root, "src-tauri/target/release/bundle/msi");
-const msiFiles = readdirSync(msiDir).filter((f) => f.endsWith(".msi"));
+const allMsiFiles = readdirSync(msiDir).filter((f) => f.endsWith(".msi"));
+// Old builds from earlier version bumps pile up in this folder (Tauri never
+// cleans it), so "the one file in here" isn't a safe assumption past the
+// first release — match on the current version instead.
+const msiFiles = allMsiFiles.filter((f) => f.includes(version));
 if (msiFiles.length !== 1) {
   throw new Error(
-    `Expected exactly one .msi in ${msiDir}, found: ${msiFiles.join(", ") || "none"}. ` +
-      `Run "npm run tauri build" first (with TAURI_SIGNING_PRIVATE_KEY set) and clear out old builds.`
+    `Expected exactly one .msi containing "${version}" in ${msiDir}, found: ` +
+      `${msiFiles.join(", ") || "none"} (other builds present: ${allMsiFiles.join(", ") || "none"}). ` +
+      `Run "npm run tauri build" first (with TAURI_SIGNING_PRIVATE_KEY set), or delete the stale .msi/.sig ` +
+      `for a version you no longer want to publish.`
   );
 }
 const msiName = msiFiles[0];
