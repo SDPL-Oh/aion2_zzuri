@@ -47,6 +47,10 @@ settings.properties
 /src-tauri/src/bin/
 .claude/
 
+# Updater signing key — never commit. Copy this file to every machine that
+# runs `tauri build` for a real release (see README_KO.md "업데이트 배포").
+/src-tauri/updater.key
+
 # Authored standalone character comparison page.
 !/public/compare.html
 !/public/compare.css

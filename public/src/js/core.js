@@ -464,6 +464,7 @@ class DpsApp {
     }
     this.setupDetailsPanelSettings();
     this.setupSettingsPanel();
+    this.setupUpdateModal();
     this.detailsUI?.updateLabels?.();
     this.i18n?.onChange?.((lang) => {
       this.settingsSelections.language = lang;
@@ -2266,7 +2267,7 @@ class DpsApp {
     });
 
     this.settingsVersionLink?.addEventListener("click", () => {
-      window.javaBridge?.openBrowser?.("https://github.com/taengu/AION2-DPS-Meter/releases");
+      window.javaBridge?.openBrowser?.("https://github.com/SDPL-Oh/aion2_zzuri/releases");
     });
 
     this.quitButton?.addEventListener("click", () => {
@@ -2274,6 +2275,112 @@ class DpsApp {
     });
 
     this.updateSettingsVersion();
+  }
+
+  setupUpdateModal() {
+    this.updateModal = document.querySelector("#updateModal");
+    this.updateModalText = document.querySelector("#updateModalText");
+    this.updateModalActions = document.querySelector("#updateModalActions");
+    this.updateInstallBtn = document.querySelector(".updateInstallBtn");
+    this.updateManualBtn = document.querySelector(".updateManualBtn");
+    this.updateLaterBtn = document.querySelector(".updateLaterBtn");
+    this.updateCancelBtn = document.querySelector(".updateCancelBtn");
+    this.updateNotesBtns = Array.from(document.querySelectorAll(".updateNotesBtn"));
+    this.updateProgress = document.querySelector("#updateProgress");
+    this.updateProgressBar = document.querySelector("#updateProgressBar");
+    this.updateProgressText = document.querySelector("#updateProgressText");
+    this.updateStatusText = document.querySelector("#updateStatusText");
+
+    const releasesUrl = "https://github.com/SDPL-Oh/aion2_zzuri/releases/latest";
+
+    this.updateLaterBtn?.addEventListener("click", () => this.closeUpdateModal());
+    this.updateCancelBtn?.addEventListener("click", () => this.closeUpdateModal());
+    this.updateManualBtn?.addEventListener("click", () => {
+      window.javaBridge?.openBrowser?.(releasesUrl);
+    });
+    this.updateNotesBtns?.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        window.javaBridge?.openBrowser?.(releasesUrl);
+      });
+    });
+    this.updateInstallBtn?.addEventListener("click", () => {
+      this.installPendingUpdate();
+    });
+  }
+
+  closeUpdateModal() {
+    this.updateModal?.classList.remove("isOpen");
+    this._pendingUpdate?.close?.();
+    this._pendingUpdate = null;
+  }
+
+  showUpdateStatus(text) {
+    if (!this.updateStatusText) return;
+    this.updateStatusText.textContent = text;
+    this.updateStatusText.style.display = text ? "" : "none";
+  }
+
+  // Checks GitHub Releases (via the Tauri updater plugin) for a newer signed
+  // build. No-op outside a real Tauri window (e.g. browser preview), where
+  // window.__TAURI__.updater is never injected.
+  async checkForUpdates() {
+    const updater = window.__TAURI__?.updater;
+    if (!updater?.check || !this.updateModal) return;
+    try {
+      const update = await updater.check();
+      if (!update) return;
+      this._pendingUpdate = update;
+      if (this.updateModalText) {
+        this.updateModalText.textContent =
+          this.i18n?.format?.(
+            "update.text",
+            { current: update.currentVersion, latest: update.version },
+            `New update available!\n\nCurrent version: ${update.currentVersion}\nLatest version: ${update.version}`
+          ) ?? "";
+      }
+      if (this.updateModalActions) this.updateModalActions.style.display = "";
+      if (this.updateProgress) this.updateProgress.style.display = "none";
+      this.showUpdateStatus("");
+      this.updateModal.classList.add("isOpen");
+    } catch (err) {
+      console.error("[A2Tools] update check failed", err);
+    }
+  }
+
+  async installPendingUpdate() {
+    const update = this._pendingUpdate;
+    if (!update) return;
+    if (this.updateModalActions) this.updateModalActions.style.display = "none";
+    if (this.updateProgress) this.updateProgress.style.display = "";
+    this.showUpdateStatus(this.i18n?.t("update.installing", "Installing update...") ?? "Installing update...");
+    let totalBytes = 0;
+    let downloadedBytes = 0;
+    try {
+      await update.downloadAndInstall((progress) => {
+        if (progress.event === "Started") {
+          totalBytes = progress.data.contentLength ?? 0;
+          downloadedBytes = 0;
+        } else if (progress.event === "Progress") {
+          downloadedBytes += progress.data.chunkLength;
+          const pct = totalBytes > 0 ? Math.min(100, Math.round((downloadedBytes / totalBytes) * 100)) : 0;
+          if (this.updateProgressBar) this.updateProgressBar.style.width = `${pct}%`;
+          if (this.updateProgressText) this.updateProgressText.textContent = `${pct}%`;
+        } else if (progress.event === "Finished") {
+          if (this.updateProgressBar) this.updateProgressBar.style.width = "100%";
+          if (this.updateProgressText) this.updateProgressText.textContent = "100%";
+        }
+      });
+      // Windows exits the app here to launch the installer once the download
+      // finishes, so nothing after this line normally runs there.
+    } catch (err) {
+      console.error("[A2Tools] update install failed", err);
+      if (this.updateProgress) this.updateProgress.style.display = "none";
+      if (this.updateModalActions) this.updateModalActions.style.display = "";
+      this.showUpdateStatus(
+        this.i18n?.t("update.downloadError", "Download failed. Try again or install manually.") ??
+          "Download failed. Try again or install manually."
+      );
+    }
   }
 
   initializeSettingsDropdowns() {
@@ -4510,6 +4617,8 @@ const startApp = async ({ forced = false } = {}) => {
       dpsApp.enterSettingsWindowMode();
     } else if (window.A2_VIEW === "history") {
       dpsApp.enterHistoryWindowMode();
+    } else {
+      dpsApp.checkForUpdates();
     }
     window.javaBridge?.notifyUiReady?.();
 
