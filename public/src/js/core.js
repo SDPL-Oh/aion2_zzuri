@@ -222,6 +222,7 @@ class DpsApp {
     this._connectionStatusOverride = false;
 
     this.resetBtn = document.querySelector(".resetBtn");
+    this.closeBtn = document.querySelector(".closeBtn");
     this.suspendBtn = document.querySelector(".suspendBtn");
     this.headerBtns = document.querySelector(".headerBtns");
     this.targetModeBtn = document.querySelector(".footerBtns .targetModeBtn");
@@ -302,12 +303,12 @@ class DpsApp {
         return this.i18n?.t?.("battleTime.suspended", "App suspended") ?? "App suspended";
       }
       if (!this.aionRunning) {
-        const text = this.i18n?.t("battleTime.notRunning", "AION2 not running") ?? "AION2 not running";
+        const text = this.i18n?.t("battleTime.notRunning", "AION2 실행되지 않음") ?? "AION2 실행되지 않음";
         return withBacklog(text);
       }
       if (this.isDetectingPort) {
-        const text = this.i18n?.t("connection.detecting", "Detecting AION2 connection...") ??
-          "Detecting AION2 connection...";
+        const text = this.i18n?.t("connection.detecting", "AION2 연결 감지 중...") ??
+          "AION2 연결 감지 중...";
         return withBacklog(text);
       }
       if (this.battleTime?.getState?.() === "state-idle") {
@@ -345,7 +346,7 @@ class DpsApp {
     this.meterTotalDpsEl = document.querySelector(".meterTotalDps");
     this.meterTotalDmgEl = document.querySelector(".meterTotalDmg");
     const savedLimit = parseInt(this.safeGetSetting(this.storageKeys.playerLimit), 10);
-    this.playerLimit = Number.isFinite(savedLimit) && savedLimit >= 1 ? savedLimit : 6;
+    this.playerLimit = Number.isFinite(savedLimit) && savedLimit >= 1 ? savedLimit : 10;
 
     this.detailsPanel = document.querySelector(".detailsPanel");
     this.detailsClose = document.querySelector(".detailsClose");
@@ -1300,22 +1301,6 @@ class DpsApp {
     }, 1000);
   }
 
-  captureMainMeterScreenshot() {
-    const meterRect = document.querySelector(".meter")?.getBoundingClientRect?.();
-    if (!meterRect) return;
-    const scale = window.devicePixelRatio || 1;
-    const success = window.javaBridge?.captureScreenshotToClipboard?.(
-      meterRect.left,
-      meterRect.top,
-      meterRect.width,
-      meterRect.height,
-      scale
-    );
-    if (success) {
-      this.triggerMeterFlash();
-    }
-  }
-
   reinitTargetSelection(reason) {
     this.resetTargetTrackingState();
     window.javaBridge?.restartTargetSelection?.();
@@ -1794,7 +1779,6 @@ class DpsApp {
   }
 
   bindHeaderButtons() {
-    this.logoBtn = document.querySelector(".bossIcon");
     this.collapseBtn?.addEventListener("click", () => {
       this.listSortDirection = this.listSortDirection === "asc" ? "desc" : "asc";
       this.renderCurrentRows();
@@ -1812,6 +1796,15 @@ class DpsApp {
     });
     this.resetBtn?.addEventListener("click", () => {
       this.refreshDamageData({ reason: "manual refresh" });
+    });
+    this.closeBtn?.addEventListener("click", () => {
+      window.javaBridge?.exitApp?.();
+    });
+    this.closeBtn?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        window.javaBridge?.exitApp?.();
+      }
     });
     this.suspendBtn?.addEventListener("click", () => {
       this._setCaptureSuspended(!this._captureSuspended);
@@ -1835,10 +1828,6 @@ class DpsApp {
     });
     // 심플 모드에서는 총딜량/DPS를 항상 같이 보여주므로 토글 버튼은 비활성화.
     // (버튼 자체는 CSS로 숨김 처리됨 — styles.css .metricToggleBtn { display: none })
-    this.logoBtn?.addEventListener("click", () => {
-      this.captureMainMeterScreenshot();
-    });
-    this.logoBtn?.setAttribute("data-no-drag", "true");
 
     // Click on boss name area → open Details for current mob (all players) or history
     // The target name is a plain label now: no click target and no data-no-drag,
@@ -3885,7 +3874,7 @@ class DpsApp {
     const port = hasPort
       ? String(info.port)
       : this.isDetectingPort
-        ? this.i18n?.t("connection.detecting", "Detecting AION2 connection...")
+        ? this.i18n?.t("connection.detecting", "AION2 연결 감지 중...")
         : this.i18n?.t("connection.auto", "Auto");
     this.lockedIp.textContent = ip;
     this.lockedPort.textContent = port;
@@ -4031,14 +4020,14 @@ class DpsApp {
     if (!this.battleTimeRoot || !this.analysisStatusEl) return;
     if (!this.aionRunning) {
       this.applyConnectionStatusOverride(
-        this.i18n?.t("battleTime.notRunning", "AION2 not running") ?? "AION2 not running"
+        this.i18n?.t("battleTime.notRunning", "AION2 실행되지 않음") ?? "AION2 실행되지 않음"
       );
       return;
     }
     if (this.isDetectingPort) {
       this.applyConnectionStatusOverride(
-        this.i18n?.t("connection.detecting", "Detecting AION2 connection...") ??
-          "Detecting AION2 connection..."
+        this.i18n?.t("connection.detecting", "AION2 연결 감지 중...") ??
+          "AION2 연결 감지 중..."
       );
       return;
     }

@@ -538,6 +538,7 @@ html:lang(zh-Hant), html:lang(zh-Hant) body {
 }
 .header .headerBtns .headerBtn svg { width: 15px; height: 15px; }
 .header .headerBtns .headerBtn:hover { color: #fff; }
+.header .headerBtns .closeBtn:hover { color: var(--error-fill); }
 .header .headerBtns.hasSuspendBtn { gap: 6px; }
 .header .headerBtns .suspendBtn { color: rgba(255, 255, 255, 0.55); }
 .header .headerBtns .suspendBtn.isSuspended { color: #ff6b6b; }

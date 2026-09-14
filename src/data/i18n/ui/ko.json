@@ -1,6 +1,7 @@
 {
   "header": {
     "title": "zzuring",
+    "close": "닫기",
     "display": {
       "dps": "DPS",
       "total": "DMG",
@@ -251,7 +252,7 @@
   "battleTime": {
     "analysing": "데이터 모니터링 중...",
     "idle": "대기 중",
-    "notRunning": "AION2 not running",
+    "notRunning": "AION2 실행되지 않음",
     "suspended": "앱 일시정지됨"
   },
   "meter": {
@@ -274,7 +275,7 @@
   },
   "connection": {
     "auto": "자동",
-    "detecting": "Detecting AION2 connection...",
+    "detecting": "AION2 연결 감지 중...",
     "loopback": "로컬 루프백"
   },
   "target": {
