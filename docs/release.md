@@ -1,5 +1,24 @@
 # 릴리스(자동 업데이트) 배포
 
+## 자동 배포 (권장)
+
+`.github/workflows/release.yml`이 태그 푸시 시 Windows 러너에서 서명 빌드 → GitHub Release 생성 → `.msi`와 `latest.json` 첨부까지 전부 처리한다 (Npcap은 런타임에 `wpcap.dll`을 로드하므로 빌드에 불필요).
+
+**최초 1회 설정** — GitHub 저장소 Settings → Secrets and variables → Actions에 등록:
+
+- `TAURI_SIGNING_PRIVATE_KEY`: `src-tauri/updater.key` 파일 내용 전체
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: 키 비밀번호 (없으면 빈 값으로 등록)
+
+**릴리스할 때:** 아래 1번(버전 올리기) 후 커밋·푸시하고 태그를 푸시한다.
+
+```bash
+git tag v1.0.6 && git push origin main v1.0.6
+```
+
+태그는 반드시 `v` + `tauri.conf.json`의 버전과 같아야 한다. 이후 2~4번은 자동이며, 아래는 수동으로 해야 할 때의 절차다.
+
+---
+
 이미 설치된 앱이 새 버전을 자동으로 감지하게 하려면, 아래 순서를 **빠짐없이** 따라야 한다. 서명 없이 빌드하거나 GitHub Release를 만들지 않으면 업데이트 확인은 조용히 아무 일도 하지 않는다 (에러도 안 뜸).
 
 ## 1. 버전 올리기

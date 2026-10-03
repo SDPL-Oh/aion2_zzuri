@@ -1,0 +1,45 @@
+name: Release
+
+# Pushing a tag like v1.0.6 builds a signed MSI on a Windows runner and publishes
+# a GitHub Release containing the .msi and latest.json (the updater manifest).
+# Npcap is not needed to build: wpcap.dll is loaded at runtime.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: v__VERSION__
+          releaseName: "zzuring v__VERSION__"
+          releaseBody: "zzuring v__VERSION__"
+          releaseDraft: false
+          prerelease: false
+          uploadUpdaterJson: true
