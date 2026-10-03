@@ -4,7 +4,9 @@
 
 AION 2 실시간 DPS 미터 오버레이. 게임 네트워크 패킷을 캡처해 데미지·스킬·전투 통계를 표시합니다.
 
-[taengu/A2Tools-DPS-Meter](https://github.com/taengu/A2Tools-DPS-Meter) (GPL-3.0)를 기반으로, 본인 개인 사용 목적에 맞게 커스터마이징한 버전입니다. **재배포하지 않고 본인만 사용하는 용도**이며, 재배포 시 원본 라이선스 조건을 따라야 합니다.
+[taengu/A2Tools-DPS-Meter](https://github.com/taengu/A2Tools-DPS-Meter) (GPL-3.0)를 기반으로 커스터마이징한 버전이며, 동일하게 GPL-3.0으로 공개합니다. 설치 파일과 자동 업데이트는 [Releases](https://github.com/SDPL-Oh/aion2_zzuri/releases)에서 배포합니다.
+
+게임 이미지(직업·스킬 아이콘 등)의 저작권은 해당 게임사에 있으며, 이 프로젝트는 게임사와 무관한 비공식 도구입니다.
 
 ## 주요 기능
 
