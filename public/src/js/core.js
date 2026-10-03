@@ -1136,6 +1136,7 @@ class DpsApp {
       const combatPower = Math.trunc(Number(isObj ? value.combatPower : 0)) || 0;
       const characterLevel = Math.trunc(Number(isObj ? value.characterLevel : 0)) || 0;
       const equipmentLevel = Math.trunc(Number(isObj ? value.equipmentLevel : 0)) || 0;
+      const serverId = Math.trunc(Number(isObj ? value.serverId : 0)) || 0;
 
       rows.push({
         id: String(id),
@@ -1147,6 +1148,7 @@ class DpsApp {
         combatPower,
         characterLevel,
         equipmentLevel,
+        serverId,
         isUser: name === this.USER_NAME,
         isIdentifying,
       });

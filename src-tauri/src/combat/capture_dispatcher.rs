@@ -234,6 +234,10 @@ impl CaptureDispatcher {
             // Real combat produces a flood of signatures too, so the rate gate covers
             // both idle and combat while staying robust. Spawns/names are still parsed
             // into the store pre-lock, so mobs seen before the first fight stay identified.
+            // Stamp damage with the pcap receive time, not the moment this loop gets
+            // to it: queue backlog (window checks, bursts) would otherwise skew the
+            // first/last hit times that battle time — and so DPS — are derived from.
+            processor.set_override_timestamp(Some(cap.captured_at_ms));
             let parsed = assembler.process_chunk(&cap.data, processor);
 
             let signature_locked =

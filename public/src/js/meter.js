@@ -16,6 +16,25 @@
   const cjkRegex = /[\u3400-\u9FFF\uF900-\uFAFF]/;
   const classIconSrcByJob = new Map();
 
+  // Server id -> display name, fetched once from the official server list.
+  // Until it loads (or if it fails) the bracket falls back to the raw id.
+  const serverNameById = new Map();
+  let serverNamesRequested = false;
+  const loadServerNames = () => {
+    if (serverNamesRequested || !window.__TAURI__?.core?.invoke) return;
+    serverNamesRequested = true;
+    window.__TAURI__.core
+      .invoke("comparison_api", { endpoint: "servers", params: { lang: "ko" } })
+      .then((res) => {
+        for (const s of Array.isArray(res?.serverList) ? res.serverList : []) {
+          if (s?.serverId != null && s.serverName) serverNameById.set(Number(s.serverId), String(s.serverName));
+        }
+      })
+      .catch(() => {
+        serverNamesRequested = false;
+      });
+  };
+
   const rowViewById = new Map();
   let lastVisibleIds = new Set();
   let pendingRenderRows = null;
@@ -321,7 +340,14 @@
       const statsParts = [];
       if (combatPowerText) statsParts.push(combatPowerText);
       if (equipmentLevel > 0) statsParts.push(equipmentLevel.toLocaleString());
-      const nameText = statsParts.length ? `${baseNameText} (${statsParts.join(", ")})` : baseNameText;
+      const serverId = Number(row.serverId) || 0;
+      let serverText = "";
+      if (serverId > 0) {
+        loadServerNames();
+        serverText = `[${serverNameById.get(serverId) ?? serverId}]`;
+      }
+      const nameWithServer = `${baseNameText}${serverText}`;
+      const nameText = statsParts.length ? `${nameWithServer} (${statsParts.join(", ")})` : nameWithServer;
       if (view.lastNameText !== nameText) {
         view.nameEl.textContent = nameText;
         // Combat power/gear score routinely push this past the row's width;

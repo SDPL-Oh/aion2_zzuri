@@ -369,10 +369,12 @@ impl DpsCalculator {
                 data.combat_power = member.combat_power;
                 data.character_level = member.level;
                 data.equipment_level = member.gear_score;
+                data.server_id = member.server_id;
             } else {
                 data.combat_power = 0;
                 data.character_level = 0;
                 data.equipment_level = 0;
+                data.server_id = 0;
             }
             if data.job.is_empty() {
                 // A party member is confirmed by the roster packet independently of

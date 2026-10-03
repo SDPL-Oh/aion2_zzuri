@@ -24,6 +24,9 @@ pub struct PersonalData {
     pub character_level: i32,
     #[serde(default)]
     pub equipment_level: i32,
+    /// Server id from the party roster packet; 0 when unknown.
+    #[serde(default)]
+    pub server_id: u16,
 }
 
 impl PersonalData {
@@ -38,6 +41,7 @@ impl PersonalData {
             combat_power: 0,
             character_level: 0,
             equipment_level: 0,
+            server_id: 0,
         }
     }
 
@@ -52,6 +56,7 @@ impl PersonalData {
             combat_power: 0,
             character_level: 0,
             equipment_level: 0,
+            server_id: 0,
         }
     }
 
