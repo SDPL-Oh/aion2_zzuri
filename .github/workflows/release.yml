@@ -31,6 +31,13 @@ jobs:
 
       - run: npm ci
 
+      # package-lock.json lags behind Cargo.lock, and `tauri build` refuses
+      # mismatched major/minor between the npm packages and the Rust crates.
+      # Move the npm side up to the latest 2.x until package-lock.json is
+      # refreshed in the repo.
+      - name: Align npm tauri packages with Cargo.lock
+        run: npm update @tauri-apps/api @tauri-apps/cli @tauri-apps/plugin-opener @tauri-apps/plugin-process @tauri-apps/plugin-updater
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
