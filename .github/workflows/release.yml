@@ -31,13 +31,6 @@ jobs:
 
       - run: npm ci
 
-      # Cargo.lock is stale (it lacks tauri-plugin-updater and pins the tauri
-      # crate behind the npm @tauri-apps/api that `npm ci` resolves), and
-      # `tauri build` refuses mismatched major/minor. Re-resolve it in CI until
-      # a fresh Cargo.lock is committed.
-      - name: Refresh Cargo.lock
-        run: cargo update --manifest-path src-tauri/Cargo.toml
-
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
