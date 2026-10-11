@@ -119,24 +119,111 @@ impl DpsCalculator {
         self.data_storage.set_current_target(0);
     }
 
-    /// The meter snapshot, plus a zero-damage row for every party member the
-    /// roster names who isn't in it. Layered on a clone, never on the cached
-    /// snapshot, so a roster change shows up even when no damage has landed.
+    /// The meter snapshot, with the party roster laid over it. Done on a clone,
+    /// never on the cached snapshot, so a roster change shows up even when no
+    /// damage has landed.
+    ///
+    /// Damage often arrives under an entity id whose name hasn't been learned
+    /// yet, so the row reads `#id` instead of a character name. Adding every
+    /// roster member as a standby row would then show each such player twice, so
+    /// first the nameless rows are matched to roster members, and a standby row
+    /// is only added for a member nobody can account for.
     pub fn get_dps(&mut self) -> DpsData {
         let mut dps_data = self.compute_dps();
         let roster = self.data_storage.get_party_roster_sorted();
         if roster.is_empty() {
             return dps_data;
         }
-        let present: HashSet<String> = dps_data.map.values().map(|p| p.nickname.clone()).collect();
-        for (name, member) in roster {
-            if present.contains(&name) {
-                continue;
+        let local_name = self.data_storage.local_character_name();
+        let local_id = dps_data.local_player_id;
+
+        let named: HashSet<String> = dps_data
+            .map
+            .iter()
+            .filter(|(uid, p)| !is_unnamed(**uid, p))
+            .map(|(_, p)| p.nickname.clone())
+            .collect();
+        // Roster members with no named row yet, in slot order.
+        let mut unmatched: Vec<(String, crate::combat::data_storage::PartyMember)> =
+            roster.into_iter().filter(|(name, _)| !named.contains(name)).collect();
+
+        let job_of = |m: &crate::combat::data_storage::PartyMember| -> String {
+            m.job.map(|j| j.class_name().to_string()).unwrap_or_default()
+        };
+        let mut unnamed_ids: Vec<i32> = dps_data
+            .map
+            .iter()
+            .filter(|(uid, p)| is_unnamed(**uid, p))
+            .map(|(uid, _)| *uid)
+            .collect();
+        unnamed_ids.sort_unstable();
+
+        // Name a nameless row after a roster member.
+        let adopt = |dps_data: &mut DpsData, uid: i32, idx: usize, unmatched: &mut Vec<(String, crate::combat::data_storage::PartyMember)>| {
+            let (name, member) = unmatched.remove(idx);
+            if let Some(row) = dps_data.map.get_mut(&uid) {
+                row.nickname = name;
+                row.combat_power = member.combat_power;
+                row.character_level = member.level;
+                row.equipment_level = member.gear_score;
+                row.server_id = member.server_id;
+                if row.job.is_empty() || row.job == "Unknown" {
+                    row.job = job_of(&member);
+                }
             }
-            let mut row = PersonalData::with_job(
-                name,
-                member.job.map(|j| j.class_name().to_string()).unwrap_or_default(),
-            );
+        };
+
+        // 1. Your own row: the entity you play is known, and so is your name.
+        if let (Some(lid), Some(lname)) = (local_id, local_name.as_ref()) {
+            let uid = lid as i32;
+            if unnamed_ids.contains(&uid) {
+                if let Some(idx) = unmatched.iter().position(|(n, _)| n == lname) {
+                    adopt(&mut dps_data, uid, idx, &mut unmatched);
+                    unnamed_ids.retain(|&u| u != uid);
+                }
+            }
+        }
+
+        // 2. Others: a class held by exactly one nameless row and exactly one
+        // unmatched member is unambiguous. Two of a class can't be told apart.
+        for uid in unnamed_ids.clone() {
+            let job = match dps_data.map.get(&uid) {
+                Some(p) if !p.job.is_empty() && p.job != "Unknown" => p.job.clone(),
+                _ => continue,
+            };
+            let rows_of_job = unnamed_ids
+                .iter()
+                .filter(|u| dps_data.map.get(*u).is_some_and(|p| p.job == job))
+                .count();
+            let candidates: Vec<usize> = unmatched
+                .iter()
+                .enumerate()
+                .filter(|(_, (_, m))| job_of(m) == job)
+                .map(|(i, _)| i)
+                .collect();
+            if rows_of_job == 1 && candidates.len() == 1 {
+                adopt(&mut dps_data, uid, candidates[0], &mut unmatched);
+                unnamed_ids.retain(|&u| u != uid);
+            }
+        }
+
+        // 3. Whoever is left is a standby row — unless a nameless row of that
+        // class could still be them, in which case showing both is the 5-becomes-10
+        // problem, so that class gets one standby row fewer per nameless row.
+        let mut nameless_by_job: HashMap<String, usize> = HashMap::new();
+        for uid in &unnamed_ids {
+            if let Some(p) = dps_data.map.get(uid) {
+                *nameless_by_job.entry(p.job.clone()).or_default() += 1;
+            }
+        }
+        for (name, member) in unmatched {
+            if let Some(n) = nameless_by_job.get_mut(&job_of(&member)) {
+                if *n > 0 {
+                    *n -= 1;
+                    continue;
+                }
+            }
+            let mut row = PersonalData::with_job(name, job_of(&member));
             row.combat_power = member.combat_power;
             row.character_level = member.level;
             row.equipment_level = member.gear_score;
@@ -1170,6 +1257,11 @@ impl DpsCalculator {
             heal_skills: heal_map.into_values().collect(),
         }
     }
+}
+
+/// A row whose name was never learned: its nickname is empty or just its id.
+fn is_unnamed(uid: i32, row: &PersonalData) -> bool {
+    row.nickname.is_empty() || row.nickname == uid.to_string()
 }
 
 fn resolve_nickname(uid: i32, nicknames: &HashMap<i32, String>, summon_data: &HashMap<i32, i32>) -> String {
