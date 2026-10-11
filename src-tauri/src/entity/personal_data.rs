@@ -27,6 +27,10 @@ pub struct PersonalData {
     /// Server id from the party roster packet; 0 when unknown.
     #[serde(default)]
     pub server_id: u16,
+    /// A party member the roster names who has dealt no damage yet. Shown so the
+    /// team is visible from the moment you join, before anyone fights.
+    #[serde(default)]
+    pub standby: bool,
 }
 
 impl PersonalData {
@@ -42,6 +46,7 @@ impl PersonalData {
             character_level: 0,
             equipment_level: 0,
             server_id: 0,
+            standby: false,
         }
     }
 
@@ -57,6 +62,7 @@ impl PersonalData {
             character_level: 0,
             equipment_level: 0,
             server_id: 0,
+            standby: false,
         }
     }
 

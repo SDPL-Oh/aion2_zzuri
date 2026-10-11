@@ -962,12 +962,14 @@ impl StreamProcessor {
                 continue;
             }
             match parse_party_roster_at(data, i + 2) {
-                Some((members, complete)) => {
+                Some((members, complete, dungeon_id)) => {
                     tracing::debug!(
-                        "Party roster: {} members (complete={})",
+                        "Party roster: {} members (complete={}, dungeon={})",
                         members.len(),
-                        complete
+                        complete,
+                        dungeon_id
                     );
+                    self.data_storage.set_current_dungeon(dungeon_id);
                     self.data_storage.set_party_roster(members, complete);
                     i += 2;
                 }
@@ -2340,7 +2342,7 @@ fn should_use_repeated_hit_damage(switch_value: i32, encoded_damage: i32, multi_
 fn parse_party_roster_at(
     data: &[u8],
     at: usize,
-) -> Option<(Vec<(String, crate::combat::data_storage::PartyMember)>, bool)> {
+) -> Option<(Vec<(String, crate::combat::data_storage::PartyMember)>, bool, i32)> {
     use crate::combat::data_storage::PartyMember;
 
     let mut o = at.checked_add(4)?; // party_key u32
@@ -2357,6 +2359,9 @@ fn parse_party_roster_at(
     if !(1..=12).contains(&party_size) {
         return None;
     }
+    // The instance the party is queued for / inside. Its last digit is the
+    // difficulty tier (Exploration / Conquest Normal / Conquest Hard).
+    let dungeon_id = parse_u32_le(data.get(o..o + 4)?, 0) as i32;
     o += 4 + 2 + 8 + 3; // dungeon_id, 2 pad, leader_dbid, 3 pad
     let count_info = read_varint(data, o);
     if count_info.length <= 0 || !(1..=12).contains(&count_info.value) {
@@ -2371,19 +2376,27 @@ fn parse_party_roster_at(
             break;
         }
         let slot = data[o + 1];
+        // A vacant slot is a record too (zero mask, empty name, zero stats) in a
+        // shorter form, and slots after it can still be filled — so skip it and
+        // re-acquire the next member rather than ending the roster there.
+        if is_vacant_slot(data, o) {
+            if index + 1 == count_info.value {
+                complete = true;
+                break;
+            }
+            match find_next_member(data, o + VACANT_HEADER, slot.wrapping_add(1)) {
+                Some(next) => o = next,
+                None => break,
+            }
+            continue;
+        }
         o += 2; // presence_mask, slot
         let dbid = u64::from_le_bytes(data.get(o..o + 8)?.try_into().ok()?);
         o += 8;
         let server_id = (dbid >> 48) as u16;
         let nick_len = *data.get(o)? as usize;
         o += 1;
-        // An empty name is a vacant slot. Those records are short and the ones
-        // after them are all vacant too, so the roster ends here.
-        if nick_len == 0 {
-            complete = true;
-            break;
-        }
-        if nick_len > 40 || o + nick_len > data.len() {
+        if nick_len == 0 || nick_len > 40 || o + nick_len > data.len() {
             break;
         }
         let nickname = match std::str::from_utf8(&data[o..o + nick_len]) {
@@ -2394,7 +2407,8 @@ fn parse_party_roster_at(
         if o + 12 > data.len() {
             break;
         }
-        o += 4; // unnamed u32
+        let job = crate::entity::job_class::JobClass::from_roster_class(parse_u32_le(data, o));
+        o += 4;
         let level = parse_u32_le(data, o) as i32;
         o += 4;
         if !(1..=200).contains(&level) {
@@ -2430,6 +2444,8 @@ fn parse_party_roster_at(
                 gear_score,
                 combat_power: combat_power as i64,
                 server_id,
+                dbid,
+                job,
             },
         ));
 
@@ -2448,7 +2464,21 @@ fn parse_party_roster_at(
     if members.is_empty() {
         return None;
     }
-    Some((members, complete))
+    Some((members, complete, dungeon_id))
+}
+
+/// Bytes of a vacant slot's record up to its name: mask, slot, dbid, name length.
+const VACANT_HEADER: usize = 11;
+
+/// A vacant slot's record at `at`: a zero mask, then (after the slot number) a
+/// zero dbid, an empty name and a zero class, level and gear score. The 12 zeros
+/// after the name tell it from a stray `00 <slot>` inside the zeros of the
+/// record before it, whose next nonzero byte comes sooner.
+fn is_vacant_slot(data: &[u8], at: usize) -> bool {
+    data.get(at) == Some(&0)
+        && data
+            .get(at + 2..at + VACANT_HEADER + 12)
+            .is_some_and(|zeros| zeros.iter().all(|&b| b == 0))
 }
 
 /// Find a little-endian `u16` equal to `wanted` in `data[from..to]`.
@@ -2465,6 +2495,9 @@ fn find_next_member(data: &[u8], from: usize, expected_slot: u8) -> Option<usize
     for i in from..=end {
         if data[i + 1] != expected_slot {
             continue;
+        }
+        if is_vacant_slot(data, i) {
+            return Some(i);
         }
         let server_id = u16::from_le_bytes([data[i + 8], data[i + 9]]);
         if server_id == 0 || server_id > 9_999 {

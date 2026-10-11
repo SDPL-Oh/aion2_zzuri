@@ -12,6 +12,9 @@ use crate::entity::summon_resolver;
 use crate::i18n::lookup::{NpcLookup, SkillLookup};
 
 /// Train mob NPC type codes.
+/// Entity-id band for roster-only rows (see `get_dps`).
+const STANDBY_ID_BASE: i32 = 1_900_000_000;
+
 const TRAIN_MOB_CODES: &[i32] = &[
     2300229, 2300919, 2310229, 2310919, 2320229, 2320919,
     2400032, 2400392, 2500075, 2500076, 2701376,
@@ -116,7 +119,36 @@ impl DpsCalculator {
         self.data_storage.set_current_target(0);
     }
 
+    /// The meter snapshot, plus a zero-damage row for every party member the
+    /// roster names who isn't in it. Layered on a clone, never on the cached
+    /// snapshot, so a roster change shows up even when no damage has landed.
     pub fn get_dps(&mut self) -> DpsData {
+        let mut dps_data = self.compute_dps();
+        let roster = self.data_storage.get_party_roster_sorted();
+        if roster.is_empty() {
+            return dps_data;
+        }
+        let present: HashSet<String> = dps_data.map.values().map(|p| p.nickname.clone()).collect();
+        for (name, member) in roster {
+            if present.contains(&name) {
+                continue;
+            }
+            let mut row = PersonalData::with_job(
+                name,
+                member.job.map(|j| j.class_name().to_string()).unwrap_or_default(),
+            );
+            row.combat_power = member.combat_power;
+            row.character_level = member.level;
+            row.equipment_level = member.gear_score;
+            row.server_id = member.server_id;
+            row.standby = true;
+            // Entity ids stay below 10M, so this band can't collide with a real one.
+            dps_data.map.insert(STANDBY_ID_BASE + member.slot as i32, row);
+        }
+        dps_data
+    }
+
+    fn compute_dps(&mut self) -> DpsData {
         // A zone change flushed combat data; drop our cached snapshot and saved-target
         // state so the meter resets this cycle instead of returning the stale snapshot.
         if self.data_storage.take_combat_reset_requested() {
@@ -713,6 +745,21 @@ impl DpsCalculator {
                 is_train,
                 app_version: crate::entity::fight_record::APP_VERSION.to_string(),
                 mob_code,
+                party: self
+                    .data_storage
+                    .get_party_roster_sorted()
+                    .into_iter()
+                    .map(|(nickname, m)| crate::entity::fight_record::PartyMemberRecord {
+                        slot: m.slot,
+                        nickname,
+                        job: m.job.map(|j| j.class_name().to_string()).unwrap_or_default(),
+                        level: m.level,
+                        gear_score: m.gear_score,
+                        combat_power: m.combat_power,
+                        server_id: m.server_id,
+                    })
+                    .collect(),
+                dungeon_id: self.data_storage.current_dungeon(),
             };
 
             if is_ended {

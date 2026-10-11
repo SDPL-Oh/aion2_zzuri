@@ -1149,6 +1149,8 @@ class DpsApp {
         characterLevel,
         equipmentLevel,
         serverId,
+        // Named by the party roster but hasn't dealt damage yet.
+        standby: isObj && value.standby === true,
         isUser: name === this.USER_NAME,
         isIdentifying,
       });

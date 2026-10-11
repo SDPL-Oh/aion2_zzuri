@@ -28,6 +28,30 @@ pub struct FightRecord {
     /// NPC mob type code for i18n boss name resolution (new field).
     #[serde(default)]
     pub mob_code: i32,
+    /// Party roster when the fight was saved — includes members who dealt no
+    /// damage, which `actors` never lists.
+    #[serde(default)]
+    pub party: Vec<PartyMemberRecord>,
+    /// Dungeon id from the roster header (0 = unknown).
+    #[serde(default)]
+    pub dungeon_id: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PartyMemberRecord {
+    pub slot: u8,
+    pub nickname: String,
+    #[serde(default)]
+    pub job: String,
+    #[serde(default)]
+    pub level: i32,
+    #[serde(default)]
+    pub gear_score: i32,
+    #[serde(default)]
+    pub combat_power: i64,
+    #[serde(default)]
+    pub server_id: u16,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

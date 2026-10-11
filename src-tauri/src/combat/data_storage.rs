@@ -134,6 +134,10 @@ pub struct PartyMember {
     pub combat_power: i64,
     /// World/server id (the bracket tag next to a cross-server player's name).
     pub server_id: u16,
+    /// Account-level id (`dbid`); its high u16 is `server_id`.
+    pub dbid: u64,
+    /// Class from the roster, `None` when the class value isn't one we know.
+    pub job: Option<JobClass>,
 }
 
 #[derive(Debug, Clone)]
@@ -242,6 +246,9 @@ struct Inner {
     low_id_entities: HashSet<i32>,
     /// Party roster from the `0x9702` packet, keyed by character name.
     party_members: HashMap<String, PartyMember>,
+    /// Instance the party is queued for / inside, from the roster header
+    /// (0 = none/unknown). Identifies both the dungeon and its difficulty tier.
+    current_dungeon_id: i32,
     /// Power-scalar values observed per actor in its damage records. A summon
     /// inherits its owner's, so this links the two when no spawn packet (and
     /// therefore no `parent_key`) ever arrives — the case for a Cleric's Divine
@@ -282,6 +289,7 @@ impl DataStorage {
                 summon_spawn_ids: HashSet::new(),
                 low_id_entities: HashSet::new(),
                 party_members: HashMap::new(),
+                current_dungeon_id: 0,
                 actor_power_scalars: HashMap::new(),
                 hostile_target_ids: HashSet::new(),
                 dead_entity_ids: HashSet::new(),
@@ -631,6 +639,21 @@ impl DataStorage {
         for (name, member) in members {
             inner.party_members.insert(name, member);
         }
+    }
+
+    pub fn set_current_dungeon(&self, dungeon_id: i32) {
+        self.inner.write().current_dungeon_id = dungeon_id;
+    }
+
+    pub fn current_dungeon(&self) -> i32 {
+        self.inner.read().current_dungeon_id
+    }
+
+    /// The roster ordered by party slot, for display and for saving with a fight.
+    pub fn get_party_roster_sorted(&self) -> Vec<(String, PartyMember)> {
+        let mut members: Vec<_> = self.inner.read().party_members.clone().into_iter().collect();
+        members.sort_by_key(|(_, m)| m.slot);
+        members
     }
 
     pub fn get_party_members(&self) -> HashMap<String, PartyMember> {

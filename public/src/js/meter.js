@@ -405,7 +405,11 @@
         visibleTotalDamage > 0 ? (Number(row.totalDamage) / visibleTotalDamage) * 100 : 0;
 
       let contributionClass = "";
-      if (damageContribution < 3) {
+      // A standby member has simply not fought yet; the low-contribution
+      // warning would paint every roster row red before the first hit.
+      if (row.standby) {
+        // no warning
+      } else if (damageContribution < 3) {
         contributionClass = "error";
       } else if (damageContribution < 5) {
         contributionClass = "warning";
