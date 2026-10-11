@@ -14,14 +14,14 @@ test('damage includes DOT, rate denominators exclude DOT and other actors', () =
     { actorId: 1, dmg: 500, time: 50, crit: 0, smite: 40, isDot: true },
     { actorId: 2, dmg: 9000, time: 100, crit: 100, smite: 100 },
   ] });
-  assert.deepEqual(result, { dps: 150, damage: 1500, crit: 40, smite: 20 });
+  assert.deepEqual(result, { dps: 150, damage: 1500, smite: 20 });
 });
 test('empty, DOT-only and mismatched detail snapshots do not manufacture rates', () => {
   assert.equal(combatMetrics(null, null).dps, null);
-  assert.equal(combatMetrics({ id: 1, dps: 100 }, null).crit, null);
+  assert.equal(combatMetrics({ id: 1, dps: 100 }, null).smite, null);
   assert.equal(combatMetrics({ id: 1, dps: 100 }, { skills: [{ actorId: 2, dmg: 1 }] }).dps, null);
   assert.equal(combatMetrics({ id: 1 }, { battleTime: 0, skills: [{ actorId: 1, dmg: 50, isDot: true }] }).dps, null);
-  assert.equal(combatMetrics({ id: 1 }, { battleTime: 1000, skills: [{ actorId: 1, dmg: 50, time: 3, isDot: true }] }).crit, null);
+  assert.equal(combatMetrics({ id: 1 }, { battleTime: 1000, skills: [{ actorId: 1, dmg: 50, time: 3, isDot: true }] }).smite, null);
 });
 const info = { profile: { characterName: '테스트', combatPower: 100 }, stat: { statList: [{ type: 'STR', name: '위력', value: 10, statSecondList: ['공격력 증가 +1%'] }] } };
 const gear = equipmentList => ({ equipment: { equipmentList } });

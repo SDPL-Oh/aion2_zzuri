@@ -59,7 +59,7 @@ function renderCombat() {
   });
   const values = sides.map(s => combatMetrics(s.row, snapshot?.details));
   $('combatMetrics').replaceChildren();
-  for (const [key, title, unit] of [['dps', 'DPS', ''], ['damage', '총 피해량', ''], ['crit', '치명타율', '%']]) {
+  for (const [key, title, unit] of [['dps', 'DPS', ''], ['damage', '총 피해량', '']]) {
     const row = el('div', 'comparisonRow');
     const scale = unit ? 100 : Math.max(values[0][key] || 0, values[1][key] || 0);
     const difference = delta(values[0][key], values[1][key]);

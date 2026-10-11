@@ -9,11 +9,11 @@ export function percentDelta(mine, other) {
   return a === null || b === null || b === 0 ? null : (a - b) / Math.abs(b) * 100;
 }
 export function combatMetrics(row, details) {
-  if (!row) return { dps: null, damage: null, crit: null, smite: null };
+  if (!row) return { dps: null, damage: null, smite: null };
   const skills = Array.isArray(details?.skills) ? details.skills.filter(s => String(s.actorId) === String(row.id)) : [];
   if (!skills.length) return details?.skills?.length
-    ? { dps: null, damage: null, crit: null, smite: null }
-    : { dps: number(row.dps), damage: number(row.totalDamage), crit: null, smite: null };
+    ? { dps: null, damage: null, smite: null }
+    : { dps: number(row.dps), damage: number(row.totalDamage), smite: null };
   const damage = skills.reduce((sum, s) => sum + (number(s.dmg) || 0), 0);
   // DOT ticks have damage but are not eligible direct hits for these rates.
   const hits = skills.filter(s => !s.isDot);
@@ -21,7 +21,7 @@ export function combatMetrics(row, details) {
   const rate = key => count > 0 && hits.every(s => number(s[key]) !== null)
     ? hits.reduce((sum, s) => sum + number(s[key]), 0) / count * 100 : null;
   const ms = number(details.battleTime);
-  return { damage, dps: ms !== null && ms > 0 ? damage / Math.max(ms / 1000, 1) : null, crit: rate('crit'), smite: rate('smite') };
+  return { damage, dps: ms !== null && ms > 0 ? damage / Math.max(ms / 1000, 1) : null, smite: rate('smite') };
 }
 export function normalizeCharacter(info, equipment) {
   if (!info?.profile?.characterName || !Array.isArray(info?.stat?.statList)) throw new Error('캐릭터 스탯 응답 형식이 변경되었거나 비공개 상태입니다.');
